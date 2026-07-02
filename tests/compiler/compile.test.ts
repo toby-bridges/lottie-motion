@@ -106,3 +106,76 @@ describe('reveal event orchestration', () => {
     expect(result.layers[1].ind).toBe(2)
   })
 })
+
+describe('flow event orchestration', () => {
+  it('translates flow event to edge layer with trim-path animation', () => {
+    const timeline: TimelineIR = {
+      fps: 30,
+      width: 200,
+      height: 200,
+      totalFrames: 120,
+      events: [
+        {
+          kind: 'reveal',
+          target: 'node-1',
+          startF: 0,
+          endF: 30,
+          x: 50,
+          y: 100,
+          w: 120,
+          h: 60,
+        },
+        {
+          kind: 'reveal',
+          target: 'node-2',
+          startF: 30,
+          endF: 60,
+          x: 200,
+          y: 300,
+          w: 100,
+          h: 50,
+        },
+        {
+          kind: 'flow',
+          target: 'edge-1',
+          startF: 60,
+          endF: 90,
+          from: 'node-1',
+          to: 'node-2',
+        },
+      ],
+    }
+
+    const result = compile(timeline)
+
+    expect(result.layers.length).toBe(3) // 2 reveals + 1 flow
+    const flowLayer = result.layers[2]
+    expect(flowLayer.ty).toBe(4) // shape layer
+    expect(flowLayer.shapes).toBeDefined()
+    expect(flowLayer.shapes.length).toBeGreaterThan(0)
+
+    // Shapes are wrapped in a group
+    const group = flowLayer.shapes[0]
+    expect(group.ty).toBe('gr') // shape group
+    expect(group.it).toBeDefined()
+
+    // Find trim path inside the group
+    const trim = group.it.find((s: any) => s.ty === 'tm')
+    expect(trim).toBeDefined()
+    expect(trim.s.a).toBe(1) // animated
+    expect(trim.s.k.length).toBe(2)
+    expect(trim.s.k[0]).toEqual({ t: 60, s: [0] })
+    expect(trim.s.k[1]).toEqual({ t: 90, s: [100] })
+
+    // Path vertices should be box centers
+    // node-1 center: [50 + 120/2, 100 + 60/2] = [110, 130]
+    // node-2 center: [200 + 100/2, 300 + 50/2] = [250, 325]
+    const path = group.it.find((s: any) => s.ty === 'sh')
+    expect(path).toBeDefined()
+    expect(path.ks.k.v).toEqual([[110, 130], [250, 325]])
+
+    // Layer should have proper ip/op
+    expect(flowLayer.ip).toBe(0)
+    expect(flowLayer.op).toBe(120)
+  })
+})
