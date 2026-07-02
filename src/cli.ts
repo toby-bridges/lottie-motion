@@ -11,15 +11,17 @@ const args = process.argv.slice(2);
 const inputIdx = args.indexOf('--input');
 const outputIdx = args.indexOf('--output');
 const verifyIdx = args.indexOf('--verify');
+const checkIdx = args.indexOf('--check');
 
 if (inputIdx === -1 || outputIdx === -1) {
-  console.error('Usage: cli.ts --input <structure.json> --output <animation.json> [--verify]');
+  console.error('Usage: cli.ts --input <structure.json> --output <animation.json> [--verify] [--check]');
   process.exit(1);
 }
 
 const inputPath = args[inputIdx + 1];
 const outputPath = args[outputIdx + 1];
 const shouldVerify = verifyIdx !== -1;
+const shouldCheck = checkIdx !== -1;
 
 async function main(): Promise<void> {
   try {
@@ -76,6 +78,18 @@ async function main(): Promise<void> {
     const outputDir = path.dirname(outputPath);
     mkdirSync(outputDir, { recursive: true });
     writeFileSync(outputPath, JSON.stringify(lottie, null, 2));
+
+    // Contract check (Option A: delegate to compilerGate)
+    if (shouldCheck) {
+      const checkResult = compilerGate(lottie, timeline);
+      console.log(`Contract check: ${checkResult.pass ? 'PASS' : 'FAIL'}`);
+      if (!checkResult.pass) {
+        for (const msg of checkResult.failures) {
+          console.error(`  ${msg}`);
+        }
+        process.exit(1);
+      }
+    }
 
     process.exit(0);
   } catch (e) {

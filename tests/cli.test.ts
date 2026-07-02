@@ -63,4 +63,19 @@ describe('CLI: structure.json → animation.json', () => {
     expect(result).toContain('Compiler gate: PASS');
     expect(result).toContain('Render gate: PASS');
   });
+
+  it('--check validates output contract (w, h, fr, op-ip)', () => {
+    const fixtureInput = path.join(fixtureDir, 'simple-chain.json');
+    const structurePath = path.join(tmpDir, 'structure.json');
+    const animationPath = path.join(tmpDir, 'animation.json');
+
+    const fixtureContent = readFileSync(fixtureInput, 'utf-8');
+    writeFileSync(structurePath, fixtureContent);
+
+    // Run CLI with --check
+    const cmd = `npx tsx src/cli.ts --input ${structurePath} --output ${animationPath} --check`;
+    const result = execSync(cmd, { encoding: 'utf-8', stdio: 'pipe' });
+
+    expect(result).toContain('Contract check: PASS');
+  });
 });
