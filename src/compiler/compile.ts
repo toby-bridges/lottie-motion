@@ -136,7 +136,7 @@ function buildFlowLayer(
   const toC: [number, number] = [toBox.x + toBox.w / 2, toBox.y + toBox.h / 2]
 
   const bezier = el('k', 'animated-shape-bezier', ob('bezier', [
-    at('c', 'bezier-closed', pt(0)),
+    at('c', 'bezier-closed', pt(false)),
     cl('v', 'bezier-vertices', ar('bezier-vertices-children', [bezierPoint(fromC), bezierPoint(toC)])),
     cl('i', 'bezier-in-tangents', ar('bezier-in-tangents-children', [
       ar('bezier-in-tangents', [pt(0), pt(0)]),

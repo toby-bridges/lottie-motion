@@ -46,18 +46,14 @@ describe('CLI: structure.json → animation.json', () => {
     expect(animation).toHaveProperty('op'); // out point
   });
 
-  it('--verify runs builder, compiler, render gates and exits 0 on success', () => {
+  it('--verify runs builder, compiler, render gates and exits 0 on success (multi-node fixture with edges)', () => {
+    // Copy real multi-node fixture (with flow edges) to tmpDir
+    const fixtureInput = path.join(fixtureDir, 'simple-chain.json');
     const structurePath = path.join(tmpDir, 'structure.json');
     const animationPath = path.join(tmpDir, 'animation.json');
 
-    // Use a minimal single-node structure that passes all gates
-    const structure = {
-      vertices: [
-        { id: 'n1', label: 'Node1', x: 0, y: 0, w: 100, h: 50 }
-      ],
-      edges: []
-    };
-    writeFileSync(structurePath, JSON.stringify(structure));
+    const fixtureContent = readFileSync(fixtureInput, 'utf-8');
+    writeFileSync(structurePath, fixtureContent);
 
     // Run CLI with --verify
     const cmd = `npx tsx src/cli.ts --input ${structurePath} --output ${animationPath} --verify`;
