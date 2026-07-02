@@ -1,7 +1,7 @@
 import { TITLES as T } from '@lottiefiles/last/titles'
 import { el, ob, ar, at, pt, cl } from '@lottiefiles/last-builder'
-import type { TimelineIR, TimelineEventReveal, TimelineEventFlow } from '../types/timeline.js'
-import { rootCanvasAsm, keyframe, staticVal, staticMulti } from './primitives.js'
+import type { TimelineIR, TimelineEventReveal, TimelineEventFlow, TimelineEventHighlight } from '../types/timeline.js'
+import { rootCanvasAsm, keyframe, keyframeVec, staticVal, staticMulti } from './primitives.js'
 import type { LottieJSON } from '../types/compiler.js'
 
 /**
@@ -12,15 +12,39 @@ function bezierPoint(xy: [number, number]) {
 }
 
 /**
+ * scaleElement: builds a scale transform element (static or animated pulse)
+ * @param highlightEvent optional; if present, creates animated scale pulse (100%→105%→100%)
+ */
+function scaleElement(highlightEvent?: TimelineEventHighlight) {
+  if (!highlightEvent) {
+    // Static scale (unchanged Task 8 behavior)
+    return staticMulti('s', 'layer-transform-scale', 'animated-multidimensional-static', [100, 100, 100])
+  }
+
+  // Animated scale pulse — keyframe values are multidimensional [sx,sy,sz]
+  const midF = Math.floor((highlightEvent.startF + highlightEvent.endF) / 2)
+  return el('s', 'layer-transform-scale', ob(T.object.animatedValue, [
+    at('a', T.intBoolean.animated, pt(1)),
+    cl('k', T.collection.keyframeList, ar(T.array.keyframeListChildren, [
+      keyframeVec(highlightEvent.startF, [100, 100, 100]),
+      keyframeVec(midF, [105, 105, 105]),
+      keyframeVec(highlightEvent.endF, [100, 100, 100]),
+    ])),
+  ]))
+}
+
+/**
  * buildRevealLayer: constructs a reveal-event shape layer with animated opacity
  * @param event the reveal event (carries startF, endF, x, y, w, h)
  * @param layerIndex the layer's index
  * @param totalFrames from timeline (needed for layer ip/op)
+ * @param highlightEvent optional highlight event (creates animated scale pulse)
  */
 function buildRevealLayer(
   event: TimelineEventReveal,
   layerIndex: number,
-  totalFrames: number
+  totalFrames: number,
+  highlightEvent?: TimelineEventHighlight
 ): any {
   // animated opacity 0 -> 100 over [startF, endF]
   const opacity = el('o', T.element.transformOpacity, ob(T.object.animatedValue, [
@@ -31,12 +55,15 @@ function buildRevealLayer(
     ])),
   ]))
 
+  // Scale element: static by default, animated pulse if highlight is present
+  const scale = scaleElement(highlightEvent)
+
   const transform = el('ks', T.element.layerTransform, ob('layer-transform-children', [
     opacity,
     staticVal('r', 'rotation-clockwise', 0),
     staticMulti('p', 'translation', 'animated-position-static', [event.x, event.y, 0]),
     staticMulti('a', 'anchor-point', 'animated-position-static', [0, 0, 0]),
-    staticMulti('s', 'layer-transform-scale', 'animated-multidimensional-static', [100, 100, 100]),
+    scale,
   ]))
 
   const rect = ob('shape-rectangle', [
@@ -203,10 +230,19 @@ export function compile(timeline: TimelineIR): LottieJSON {
   // Build a map of reveal events by target id (for flow event lookups)
   const revealMap = new Map<string, TimelineEventReveal>()
 
+  // Collect highlights by target id (v0.1: first highlight per target wins)
+  const highlightMap = new Map<string, TimelineEventHighlight>()
+  timeline.events.forEach(event => {
+    if (event.kind === 'highlight' && !highlightMap.has(event.target)) {
+      highlightMap.set(event.target, event)
+    }
+  })
+
   // Walk timeline events; process reveal events
   timeline.events.forEach(event => {
     if (event.kind === 'reveal') {
-      const layer = buildRevealLayer(event, layerIndex, timeline.totalFrames)
+      const highlight = highlightMap.get(event.target)
+      const layer = buildRevealLayer(event, layerIndex, timeline.totalFrames, highlight)
       layers.push(layer)
       revealMap.set(event.target, event)
       layerIndex++

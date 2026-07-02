@@ -12,6 +12,14 @@ export function keyframe(t: number, s: number) {
   ])
 }
 
+// Keyframe helper for multidimensional values: { t, s:[a, b, c, ...] }
+export function keyframeVec(t: number, arr: number[]) {
+  return ob(T.object.keyframe, [
+    at('t', T.number.keyframeTime, pt(t)),
+    cl('s', T.collection.keyframeValue, ar(T.array.keyframeValueChildren, arr.map((n) => pt(n)))),
+  ])
+}
+
 // Static scalar value (a=0, k=scalar)
 export function staticVal(key: string, title: string, v: number) {
   return el(key, title, ob('animated-value-static', [
