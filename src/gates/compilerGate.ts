@@ -47,6 +47,23 @@ export function compilerGate(lottie: LottieJSON, timeline: TimelineIR): GateResu
     failures.push('Schema validation failed (unknown error)');
   }
 
+  // Contract validation: w/h/fr/op must match Timeline IR; ip must be 0
+  if (lottie.w !== timeline.width) {
+    failures.push(`Width contract mismatch: Lottie w=${lottie.w} does not match Timeline width=${timeline.width}`);
+  }
+  if (lottie.h !== timeline.height) {
+    failures.push(`Height contract mismatch: Lottie h=${lottie.h} does not match Timeline height=${timeline.height}`);
+  }
+  if (lottie.fr !== timeline.fps) {
+    failures.push(`Framerate contract mismatch: Lottie fr=${lottie.fr} does not match Timeline fps=${timeline.fps}`);
+  }
+  if (lottie.op !== timeline.totalFrames) {
+    failures.push(`Out-point contract mismatch: Lottie op=${lottie.op} does not match Timeline totalFrames=${timeline.totalFrames}`);
+  }
+  if (lottie.ip !== 0) {
+    failures.push(`In-point must be 0 (Lottie convention), got ip=${lottie.ip}`);
+  }
+
   return {
     pass: failures.length === 0,
     failures
