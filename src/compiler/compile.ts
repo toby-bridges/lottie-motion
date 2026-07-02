@@ -3,6 +3,7 @@ import { el, ob, ar, at, pt, cl } from '@lottiefiles/last-builder'
 import type { TimelineIR, TimelineEventReveal, TimelineEventFlow, TimelineEventHighlight } from '../types/timeline.js'
 import { rootCanvasAsm, keyframe, keyframeVec, staticVal, staticMulti } from './primitives.js'
 import type { LottieJSON } from '../types/compiler.js'
+import type { ObjectTitle } from '@lottiefiles/last'
 
 /**
  * bezierPoint helper: wraps a [x, y] point into a nested bezier vertex array
@@ -58,7 +59,7 @@ function buildRevealLayer(
   // Scale element: static by default, animated pulse if highlight is present
   const scale = scaleElement(highlightEvent)
 
-  const transform = el('ks', T.element.layerTransform, ob('layer-transform-children', [
+  const transform = el('ks', T.element.layerTransform, ob('layer-transform-children' as ObjectTitle, [
     opacity,
     staticVal('r', 'rotation-clockwise', 0),
     staticMulti('p', 'translation', 'animated-position-static', [event.x, event.y, 0]),
@@ -199,7 +200,7 @@ function buildFlowLayer(
     at('a', T.intBoolean.animated, pt(0)),
     at('k', 'static-value', pt(100)),
   ]))
-  const transform = el('ks', T.element.layerTransform, ob('layer-transform-children', [
+  const transform = el('ks', T.element.layerTransform, ob('layer-transform-children' as ObjectTitle, [
     opacity,
     staticVal('r', 'rotation-clockwise', 0),
     staticMulti('p', 'translation', 'animated-position-static', [0, 0, 0]),

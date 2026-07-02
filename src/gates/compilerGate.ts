@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import type { LottieJSON } from '../types/compiler.js';
 import type { TimelineIR } from '../types/timeline.js';
+import type { ValidateFunction } from 'ajv';
 
 export interface GateResult {
   pass: boolean;
@@ -11,7 +12,7 @@ export interface GateResult {
 }
 
 let ajvInstance: Ajv2020 | null = null;
-let compiledValidator: ((data: unknown) => boolean) | null = null;
+let compiledValidator: ValidateFunction | null = null;
 
 function getValidator() {
   if (compiledValidator) {

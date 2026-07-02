@@ -3,12 +3,13 @@ import { el, ob, ar, at, pt, rt, cl } from '@lottiefiles/last-builder'
 import { relottie } from '@lottiefiles/relottie'
 import stringify from '@lottiefiles/relottie-stringify'
 import type { TimelineIR } from '../types/timeline.js'
+import type { ObjectTitle, ElementTitle } from '@lottiefiles/last'
 
 // Keyframe helper: { t, s:[value] }
 export function keyframe(t: number, s: number) {
   return ob(T.object.keyframe, [
     at('t', T.number.keyframeTime, pt(t)),
-    at('s', T.collection.keyframeValue, ar(T.array.keyframeValueChildren, [pt(s)])),
+    cl('s', T.collection.keyframeValue, ar(T.array.keyframeValueChildren, [pt(s)])),
   ])
 }
 
@@ -22,7 +23,7 @@ export function keyframeVec(t: number, arr: number[]) {
 
 // Static scalar value (a=0, k=scalar)
 export function staticVal(key: string, title: string, v: number) {
-  return el(key, title, ob('animated-value-static', [
+  return el(key, title as ElementTitle, ob('animated-value-static' as ObjectTitle, [
     at('a', T.intBoolean.animated, pt(0)),
     at('k', 'static-value', pt(v)),
   ]))
@@ -30,7 +31,7 @@ export function staticVal(key: string, title: string, v: number) {
 
 // Static vector value (a=0, k=[...])
 export function staticMulti(key: string, title: string, objTitle: string, arr: number[]) {
-  return el(key, title, ob(objTitle, [
+  return el(key, title as ElementTitle, ob(objTitle as ObjectTitle, [
     at('a', T.intBoolean.animated, pt(0)),
     cl('k', 'static-values', ar('static-values-children', arr.map((n) => pt(n)))),
   ]))
@@ -44,7 +45,7 @@ export function staticMulti(key: string, title: string, objTitle: string, arr: n
 export function fadeIn(startF: number, endF: number) {
   const opacity = el('o', T.element.transformOpacity, ob(T.object.animatedValue, [
     at('a', T.intBoolean.animated, pt(1)),  // animated: true
-    at('k', T.collection.keyframeList, ar(T.array.keyframeListChildren, [
+    cl('k', T.collection.keyframeList, ar(T.array.keyframeListChildren, [
       keyframe(startF, 0),
       keyframe(endF, 100),
     ])),
@@ -70,6 +71,6 @@ export function rootCanvasAsm(timeline: TimelineIR, layers: any[]) {
   ])
 
   // Stringify LAST AST to Lottie JSON
-  const lottie = JSON.parse(relottie().use(stringify).stringify(root))
+  const lottie = JSON.parse((relottie().use(stringify) as any).stringify(root))
   return lottie
 }
