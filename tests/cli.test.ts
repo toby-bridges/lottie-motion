@@ -45,4 +45,26 @@ describe('CLI: structure.json → animation.json', () => {
     expect(animation).toHaveProperty('ip'); // in point
     expect(animation).toHaveProperty('op'); // out point
   });
+
+  it('--verify runs builder, compiler, render gates and exits 0 on success', () => {
+    const structurePath = path.join(tmpDir, 'structure.json');
+    const animationPath = path.join(tmpDir, 'animation.json');
+
+    // Use a minimal single-node structure that passes all gates
+    const structure = {
+      vertices: [
+        { id: 'n1', label: 'Node1', x: 0, y: 0, w: 100, h: 50 }
+      ],
+      edges: []
+    };
+    writeFileSync(structurePath, JSON.stringify(structure));
+
+    // Run CLI with --verify
+    const cmd = `npx tsx src/cli.ts --input ${structurePath} --output ${animationPath} --verify`;
+    const result = execSync(cmd, { encoding: 'utf-8', stdio: 'pipe' });
+
+    expect(result).toContain('Builder gate: PASS');
+    expect(result).toContain('Compiler gate: PASS');
+    expect(result).toContain('Render gate: PASS');
+  });
 });
