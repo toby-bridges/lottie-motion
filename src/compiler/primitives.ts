@@ -5,11 +5,27 @@ import stringify from '@lottiefiles/relottie-stringify'
 import type { TimelineIR } from '../types/timeline.js'
 
 // Keyframe helper: { t, s:[value] }
-function keyframe(t: number, s: number) {
+export function keyframe(t: number, s: number) {
   return ob(T.object.keyframe, [
     at('t', T.number.keyframeTime, pt(t)),
     at('s', T.collection.keyframeValue, ar(T.array.keyframeValueChildren, [pt(s)])),
   ])
+}
+
+// Static scalar value (a=0, k=scalar)
+export function staticVal(key: string, title: string, v: number) {
+  return el(key, title, ob('animated-value-static', [
+    at('a', T.intBoolean.animated, pt(0)),
+    at('k', 'static-value', pt(v)),
+  ]))
+}
+
+// Static vector value (a=0, k=[...])
+export function staticMulti(key: string, title: string, objTitle: string, arr: number[]) {
+  return el(key, title, ob(objTitle, [
+    at('a', T.intBoolean.animated, pt(0)),
+    cl('k', 'static-values', ar('static-values-children', arr.map((n) => pt(n)))),
+  ]))
 }
 
 /**
