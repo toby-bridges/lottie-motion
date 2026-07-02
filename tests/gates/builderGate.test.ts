@@ -299,4 +299,116 @@ describe('builderGate', () => {
       expect(result.failures.some(f => f.includes('flow') && f.includes('after'))).toBe(true);
     });
   });
+
+  describe('no-duplicate-reveals invariant', () => {
+    it('passes when each node revealed exactly once', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const structure: Structure = { vertices, edges: [] };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 }
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(true);
+    });
+
+    it('fails when same node is revealed twice', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 }
+      ];
+      const structure: Structure = { vertices, edges: [] };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n1', startF: 15, endF: 27, x: 10, y: 20, w: 50, h: 30 } // duplicate
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('n1') && (f.includes('revealed') || f.includes('duplicate')))).toBe(true);
+    });
+  });
+
+  describe('partial-order invariant', () => {
+    it('passes when reveal order respects DAG connectivity', () => {
+      // Chain: n1 -> n2 -> n3
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 },
+        { id: 'n3', label: 'Node 3', x: 200, y: 280, w: 70, h: 50 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' },
+        { id: 'e2', source: 'n2', target: 'n3', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'reveal', target: 'n3', startF: 30, endF: 42, x: 200, y: 280, w: 70, h: 50 }
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(true);
+    });
+
+    it('fails when reveal order violates DAG (target before source)', () => {
+      // Edge n1 -> n2, but n2 revealed before n1
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n2', startF: 0, endF: 12, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'reveal', target: 'n1', startF: 15, endF: 27, x: 10, y: 20, w: 50, h: 30 }
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('partial order') || f.includes('before') || f.includes('violates'))).toBe(true);
+    });
+  });
 });

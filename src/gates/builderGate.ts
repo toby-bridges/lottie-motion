@@ -12,8 +12,10 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
 
   // Build reveal-end-frame map: which frame each node/edge finishes revealing
   const revealEndFrames = new Map<string, number>();
+  const seenReveals = new Set<string>();
+  const revealEventsByTarget = new Map<string, TimelineEvent>();
 
-  // First pass: collect all frame info and check frame validity
+  // First pass: collect all frame info and check frame validity, duplicates
   for (const event of timeline.events) {
     // Check non-negative frames
     if (event.startF < 0) {
@@ -33,9 +35,14 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
       failures.push(`Event '${event.target}': motion intent violation (startF === endF, no duration)`);
     }
 
-    // Track reveal end-times for edge-flow checks
+    // Check for duplicate reveals
     if (event.kind === 'reveal') {
+      if (seenReveals.has(event.target)) {
+        failures.push(`Vertex '${event.target}' revealed more than once`);
+      }
+      seenReveals.add(event.target);
       revealEndFrames.set(event.target, event.endF);
+      revealEventsByTarget.set(event.target, event);
     }
   }
 
@@ -76,6 +83,20 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
         failures.push(`flow '${event.target}': target vertex '${event.to}' never revealed`);
       } else if (event.startF < targetEndF) {
         failures.push(`flow '${event.target}': must start after target '${event.to}' is revealed (starts ${event.startF}, target revealed at ${targetEndF})`);
+      }
+    }
+  }
+
+  // Third pass: check partial-order constraints (topological ordering)
+  // For each edge, source must be revealed before target
+  for (const edge of structure.edges) {
+    const sourceEvent = revealEventsByTarget.get(edge.source);
+    const targetEvent = revealEventsByTarget.get(edge.target);
+
+    if (sourceEvent && targetEvent) {
+      // Source must start revealing before target
+      if (sourceEvent.startF >= targetEvent.startF) {
+        failures.push(`Partial order violation: '${edge.source}' (source, startF=${sourceEvent.startF}) must be revealed before '${edge.target}' (target, startF=${targetEvent.startF})`);
       }
     }
   }
