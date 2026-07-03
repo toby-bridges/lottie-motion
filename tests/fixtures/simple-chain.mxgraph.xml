@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" parent="1" vertex="1" />
+    <mxCell id="1" parent="0" />
+    <!-- Node A: x=10, y=10, width=80, height=60 -->
+    <mxCell id="nodeA" value="A" parent="1" vertex="1">
+      <mxGeometry x="10" y="10" width="80" height="60" as="geometry" />
+    </mxCell>
+    <!-- Node B: x=150, y=50, width=80, height="60" -->
+    <mxCell id="nodeB" value="B" parent="1" vertex="1">
+      <mxGeometry x="150" y="50" width="80" height="60" as="geometry" />
+    </mxCell>
+    <!-- Node C: x=280, y=80, width=80, height=60 -->
+    <mxCell id="nodeC" value="C" parent="1" vertex="1">
+      <mxGeometry x="280" y="80" width="80" height="60" as="geometry" />
+    </mxCell>
+    <!-- Edge A→B -->
+    <mxCell id="edgeAB" edge="1" parent="1" source="nodeA" target="nodeB">
+      <mxGeometry as="geometry" />
+    </mxCell>
+    <!-- Edge B→C -->
+    <mxCell id="edgeBC" edge="1" parent="1" source="nodeB" target="nodeC">
+      <mxGeometry as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
