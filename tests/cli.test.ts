@@ -8,6 +8,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureDir = path.join(__dirname, 'fixtures');
 const tmpDir = path.join(__dirname, 'tmp');
 
+// Use import.meta.dirname for Node 20+
+const rootDir = path.join(import.meta.dirname || __dirname, '..');
+
 describe('CLI: structure.json → animation.json', () => {
   beforeEach(() => {
     // Ensure tmpDir exists before writing structure.json
@@ -99,5 +102,18 @@ describe('CLI: structure.json → animation.json', () => {
     }
 
     expect(exitCode).not.toBe(0);
+  });
+
+  it('skill manifest correctly declares input/output/flags', () => {
+    const manifestPath = path.join(rootDir, 'skill-manifest.json');
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+
+    expect(manifest.name).toBe('lottie-motion');
+    expect(manifest.requires.input_file.format).toBe('json');
+    expect(manifest.produces.output_file.format).toBe('json');
+    expect(manifest.flags.map((f: any) => f.name)).toContain('input');
+    expect(manifest.flags.map((f: any) => f.name)).toContain('output');
+    expect(manifest.flags.map((f: any) => f.name)).toContain('verify');
+    expect(manifest.flags.map((f: any) => f.name)).toContain('check');
   });
 });
