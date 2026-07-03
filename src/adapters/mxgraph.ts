@@ -1,5 +1,6 @@
 import { JSDOM } from 'jsdom';
 import { Structure, Vertex, Edge } from '../types/structure.js';
+import { validateStructure } from '../validate.js';
 
 const { DOMParser } = new JSDOM('').window;
 
@@ -53,5 +54,5 @@ export function parseMxGraph(xml: string): Structure {
     }
   }
 
-  return { vertices, edges };
+  return validateStructure({ vertices, edges });
 }

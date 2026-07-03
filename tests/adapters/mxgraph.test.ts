@@ -66,4 +66,23 @@ describe('mxGraph adapter', () => {
       label: ''
     });
   });
+
+  it('throws StructureError when edge references non-existent vertex', () => {
+    const invalidXml = `<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel>
+  <root>
+    <mxCell id="0" parent="1" vertex="1" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="nodeA" value="A" parent="1" vertex="1">
+      <mxGeometry x="10" y="10" width="80" height="60" as="geometry" />
+    </mxCell>
+    <!-- Edge references non-existent target -->
+    <mxCell id="edgeDangling" edge="1" parent="1" source="nodeA" target="nodeX">
+      <mxGeometry as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>`;
+
+    expect(() => parseMxGraph(invalidXml)).toThrow();
+  });
 });
