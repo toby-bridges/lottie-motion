@@ -149,4 +149,31 @@ describe('mxGraph adapter', () => {
       label: 'right'
     });
   });
+
+  it('produces Structure ready for planner (e2e)', () => {
+    const xmlPath = path.join(__dirname, '../fixtures/simple-chain.mxgraph.xml');
+    const xml = fs.readFileSync(xmlPath, 'utf-8');
+
+    const structure: Structure = parseMxGraph(xml);
+
+    // Verify all vertices have complete geometry
+    for (const v of structure.vertices) {
+      expect(v.id).toBeTruthy();
+      expect(v.x).toBeGreaterThanOrEqual(0);
+      expect(v.y).toBeGreaterThanOrEqual(0);
+      expect(v.w).toBeGreaterThan(0);
+      expect(v.h).toBeGreaterThan(0);
+    }
+
+    // Verify all edge endpoints exist
+    const vertexIds = new Set(structure.vertices.map(v => v.id));
+    for (const e of structure.edges) {
+      expect(vertexIds.has(e.source)).toBe(true);
+      expect(vertexIds.has(e.target)).toBe(true);
+    }
+
+    // Verify no duplicate vertex ids
+    const ids = structure.vertices.map(v => v.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });
