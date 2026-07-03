@@ -82,6 +82,29 @@ describe('CLI: structure.json → animation.json', () => {
     expect(result).toContain('Contract check: PASS');
   });
 
+  it('e2e: --verify --check runs all gates and checks contract, exits 0 on complete success', () => {
+    const fixtureInput = path.join(fixtureDir, 'simple-chain.json');
+    const structurePath = path.join(tmpDir, 'structure.json');
+    const animationPath = path.join(tmpDir, 'animation.json');
+
+    const fixtureContent = readFileSync(fixtureInput, 'utf-8');
+    writeFileSync(structurePath, fixtureContent);
+
+    // Run CLI with both --verify and --check
+    const cmd = `npx tsx src/cli.ts --input ${structurePath} --output ${animationPath} --verify --check`;
+    const result = execSync(cmd, { encoding: 'utf-8', stdio: 'pipe' });
+
+    expect(result).toContain('Builder gate: PASS');
+    expect(result).toContain('Compiler gate: PASS');
+    expect(result).toContain('Render gate: PASS');
+    expect(result).toContain('Contract check: PASS');
+
+    // Verify animation.json was written
+    expect(existsSync(animationPath)).toBe(true);
+    const animation = JSON.parse(readFileSync(animationPath, 'utf-8'));
+    expect(animation.v).toBeDefined(); // Lottie version
+  });
+
   it('exits nonzero (lanshu discipline) when structure is invalid (dangling edge)', () => {
     const fixtureInput = path.join(fixtureDir, 'broken-structure.json');
     const structurePath = path.join(tmpDir, 'structure.json');
