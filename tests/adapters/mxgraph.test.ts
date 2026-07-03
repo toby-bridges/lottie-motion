@@ -85,4 +85,35 @@ describe('mxGraph adapter', () => {
 
     expect(() => parseMxGraph(invalidXml)).toThrow();
   });
+
+  it('parses diamond DAG with labeled edges', () => {
+    const xmlPath = path.join(__dirname, '../fixtures/diamond-dag.mxgraph.xml');
+    const xml = fs.readFileSync(xmlPath, 'utf-8');
+
+    const result: Structure = parseMxGraph(xml);
+
+    // Expect 4 vertices
+    expect(result.vertices).toHaveLength(4);
+    expect(result.vertices.map(v => v.id)).toEqual(['nodeA', 'nodeB', 'nodeC', 'nodeD']);
+
+    // Expect 4 edges
+    expect(result.edges).toHaveLength(4);
+
+    // Check labeled edges
+    const edgeAB = result.edges.find(e => e.id === 'edgeAB');
+    expect(edgeAB).toEqual({
+      id: 'edgeAB',
+      source: 'nodeA',
+      target: 'nodeB',
+      label: 'left'
+    });
+
+    const edgeAC = result.edges.find(e => e.id === 'edgeAC');
+    expect(edgeAC).toEqual({
+      id: 'edgeAC',
+      source: 'nodeA',
+      target: 'nodeC',
+      label: 'right'
+    });
+  });
 });
