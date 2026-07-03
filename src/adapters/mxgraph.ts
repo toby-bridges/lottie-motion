@@ -4,6 +4,23 @@ import { validateStructure } from '../validate.js';
 
 const { DOMParser } = new JSDOM('').window;
 
+/**
+ * Parse mxGraph XML (figure-canvas format) into canonical Structure IR.
+ *
+ * Converts mxGraph XML elements:
+ * - <mxCell vertex="1"> with child <mxGeometry x/y/width/height> → Vertex
+ * - <mxCell edge="1" source= target=> → Edge
+ *
+ * All parsed Vertices and Edges are validated by validateStructure:
+ * - Each vertex MUST have complete numeric x/y/w/h (w, h > 0)
+ * - Each edge's source/target MUST reference existing vertex ids
+ * - Duplicate ids are rejected
+ *
+ * @param xml - mxGraph XML string
+ * @returns Structure { vertices, edges } after validation
+ * @throws Error if XML is malformed
+ * @throws StructureError if validation fails (missing geometry, dangling edges, etc)
+ */
 export function parseMxGraph(xml: string): Structure {
   // Parse XML using DOMParser
   const parser = new DOMParser();

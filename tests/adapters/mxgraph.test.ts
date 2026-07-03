@@ -86,6 +86,39 @@ describe('mxGraph adapter', () => {
     expect(() => parseMxGraph(invalidXml)).toThrow();
   });
 
+  it('throws error when vertex has no geometry', () => {
+    const xmlNoGeometry = `<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel>
+  <root>
+    <mxCell id="0" parent="1" vertex="1" />
+    <mxCell id="1" parent="0" />
+    <!-- Vertex without mxGeometry child (will be skipped during parsing) -->
+    <mxCell id="nodeA" value="A" parent="1" vertex="1" />
+    <!-- Edge referencing the skipped vertex creates a dangling edge -->
+    <mxCell id="edge1" edge="1" parent="1" source="nodeA" target="nodeA">
+      <mxGeometry as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>`;
+
+    expect(() => parseMxGraph(xmlNoGeometry)).toThrow();
+  });
+
+  it('throws error when vertex has zero or negative dimensions', () => {
+    const xmlZeroDim = `<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel>
+  <root>
+    <mxCell id="0" parent="1" vertex="1" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="nodeA" value="A" parent="1" vertex="1">
+      <mxGeometry x="10" y="10" width="0" height="60" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>`;
+
+    expect(() => parseMxGraph(xmlZeroDim)).toThrow();
+  });
+
   it('parses diamond DAG with labeled edges', () => {
     const xmlPath = path.join(__dirname, '../fixtures/diamond-dag.mxgraph.xml');
     const xml = fs.readFileSync(xmlPath, 'utf-8');
