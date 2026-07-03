@@ -1,0 +1,8 @@
+{
+  "vertices": [
+    { "id": "a", "label": "Start", "x": 0, "y": 0, "w": 100, "h": 50 }
+  ],
+  "edges": [
+    { "id": "e1", "source": "a", "target": "nonexistent", "label": "" }
+  ]
+}

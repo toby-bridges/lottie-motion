@@ -78,4 +78,26 @@ describe('CLI: structure.json → animation.json', () => {
 
     expect(result).toContain('Contract check: PASS');
   });
+
+  it('exits nonzero (lanshu discipline) when structure is invalid (dangling edge)', () => {
+    const fixtureInput = path.join(fixtureDir, 'broken-structure.json');
+    const structurePath = path.join(tmpDir, 'structure.json');
+    const animationPath = path.join(tmpDir, 'animation.json');
+
+    const fixtureContent = readFileSync(fixtureInput, 'utf-8');
+    writeFileSync(structurePath, fixtureContent);
+
+    // Run CLI — should fail
+    let exitCode = 0;
+    try {
+      execSync(`npx tsx src/cli.ts --input ${structurePath} --output ${animationPath}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe'
+      });
+    } catch (e: any) {
+      exitCode = e.status;
+    }
+
+    expect(exitCode).not.toBe(0);
+  });
 });
