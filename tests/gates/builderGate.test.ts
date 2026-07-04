@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { builderGate } from '../../src/gates/builderGate.js';
 import { TimelineIR, TimelineEvent } from '../../src/types/timeline.js';
 import { Structure, Vertex } from '../../src/types/structure.js';
+import { fixtureCyclicGraph } from '../planner/fixtures.js';
+import { plan } from '../../src/planner/plan.js';
 
 describe('builderGate', () => {
   describe('spatial-freeze invariant', () => {
@@ -409,6 +411,44 @@ describe('builderGate', () => {
       const result = builderGate(timeline, structure);
       expect(result.pass).toBe(false);
       expect(result.failures.some(f => f.includes('partial order') || f.includes('before') || f.includes('violates'))).toBe(true);
+    });
+  });
+
+  describe('cyclic graph invariant', () => {
+    it('passes when cyclic graph is planned and gated (regression test)', () => {
+      // Cyclic graph A → B → C → A
+      const tl = plan(fixtureCyclicGraph.input);
+      const result = builderGate(tl, fixtureCyclicGraph.input);
+
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+
+    it('passes with self-loop (single vertex cycling to itself)', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n1', label: 'self' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'flow', target: 'e1', startF: 12, endF: 24, from: 'n1', to: 'n1' }
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
     });
   });
 });
