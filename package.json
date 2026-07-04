@@ -15,10 +15,12 @@
       "types": "./dist/types/index.d.ts"
     }
   },
+  "files": ["dist"],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc",
+    "build": "tsc && npm run copy:schema",
+    "copy:schema": "node -e \"require('fs').mkdirSync('dist/gates/schema',{recursive:true});require('fs').copyFileSync('src/gates/schema/lottie.schema.json','dist/gates/schema/lottie.schema.json')\"",
     "clean": "rm -rf dist"
   },
   "dependencies": {
