@@ -71,6 +71,7 @@ function hasCycle(structure: Structure): boolean {
 export function builderGate(timeline: TimelineIR, structure: Structure): GateResult {
   const failures: string[] = [];
   const vertexMap = new Map(structure.vertices.map(v => [v.id, v]));
+  const edgeMap = new Map(structure.edges.map(e => [e.id, e]));
 
   // Build reveal-end-frame map: which frame each node/edge finishes revealing
   const revealEndFrames = new Map<string, number>();
@@ -105,6 +106,13 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
       seenReveals.add(event.target);
       revealEndFrames.set(event.target, event.endF);
       revealEventsByTarget.set(event.target, event);
+    }
+  }
+
+  // Invariant A: Every vertex in structure must be revealed exactly once
+  for (const vertex of structure.vertices) {
+    if (!seenReveals.has(vertex.id)) {
+      failures.push(`Vertex '${vertex.id}' is never revealed in the timeline`);
     }
   }
 
@@ -145,6 +153,14 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
         failures.push(`flow '${event.target}': target vertex '${event.to}' never revealed`);
       } else if (event.startF < targetEndF) {
         failures.push(`flow '${event.target}': must start after target '${event.to}' is revealed (starts ${event.startF}, target revealed at ${targetEndF})`);
+      }
+
+      // Invariant B: Every flow event must correspond to a real edge
+      const edge = edgeMap.get(event.target);
+      if (!edge) {
+        failures.push(`Flow '${event.target}' does not correspond to any edge in the structure`);
+      } else if (edge.source !== event.from || edge.target !== event.to) {
+        failures.push(`Flow '${event.target}' endpoints (${event.from}->${event.to}) do not match edge (${edge.source}->${edge.target})`);
       }
     }
   }

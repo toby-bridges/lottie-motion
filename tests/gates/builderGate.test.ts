@@ -109,7 +109,10 @@ describe('builderGate', () => {
         { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
         { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
       ];
-      const structure: Structure = { vertices, edges: [] };
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
 
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
@@ -229,7 +232,10 @@ describe('builderGate', () => {
         { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
         { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
       ];
-      const structure: Structure = { vertices, edges: [] };
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
 
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
@@ -444,6 +450,152 @@ describe('builderGate', () => {
         height: 600,
         totalFrames: 100,
         events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+  });
+
+  describe('structure-timeline correspondence', () => {
+    it('fails when a structure vertex is never revealed in the timeline', () => {
+      // Missing reveal: structure has n1+n2, timeline reveals only n1
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const structure: Structure = { vertices, edges: [] };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 }
+        // n2 is not revealed
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('n2') && f.includes('never revealed'))).toBe(true);
+    });
+
+    it('fails when a timeline flow event references no edge in the structure', () => {
+      // Phantom flow: structure has edges:[], timeline has a flow event
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const structure: Structure = { vertices, edges: [] };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'flow', target: 'phantom', startF: 28, endF: 40, from: 'n1', to: 'n2' }
+        // flow 'phantom' has no corresponding edge in structure
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('phantom') && f.includes('does not correspond'))).toBe(true);
+    });
+
+    it('fails when a flow event endpoints do not match the edge in the structure', () => {
+      // Endpoint mismatch: edge e1 is n1->n2, but flow e1 has from:n2 to:n1 (reversed)
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n2', to: 'n1' } // from/to reversed
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('e1') && f.includes('endpoints') && f.includes('do not match'))).toBe(true);
+    });
+
+    it('passes when every vertex is revealed and every flow backed by a matching edge', () => {
+      // Complete valid structure + timeline: cyclic fixture
+      const tl = plan(fixtureCyclicGraph.input);
+      const result = builderGate(tl, fixtureCyclicGraph.input);
+
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+
+    it('passes with simple chain: every vertex revealed, every flow has matching edge', () => {
+      // Chain: n1 -> n2 -> n3
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 },
+        { id: 'n3', label: 'Node 3', x: 200, y: 280, w: 70, h: 50 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' },
+        { id: 'e2', source: 'n2', target: 'n3', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'reveal', target: 'n3', startF: 30, endF: 42, x: 200, y: 280, w: 70, h: 50 },
+        { kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n1', to: 'n2' },
+        { kind: 'flow', target: 'e2', startF: 43, endF: 55, from: 'n2', to: 'n3' }
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+
+    it('passes when structure is empty (no vertices, no edges)', () => {
+      // Empty structure: vacuously satisfies "every vertex revealed"
+      const structure: Structure = { vertices: [], edges: [] };
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events: []
       };
 
       const result = builderGate(timeline, structure);
