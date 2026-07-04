@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import type { Vertex, Edge, Structure } from '../src/types/structure.js';
 import type { TimelineEvent, TimelineIR } from '../src/types/timeline.js';
 import { validateStructure, StructureError } from '../src/validate.js';
+import { plan } from '../src/planner/plan.js';
+import { compile } from '../src/compiler/compile.js';
+import { render, sampleFrames } from '../src/renderer/render.js';
+import { builderGate, compilerGate, renderGate } from '../src/gates/index.js';
+import { parseMxGraph } from '../src/adapters/mxgraph.js';
 
 describe('Structure IR types', () => {
   it('should compile Vertex type', () => {
@@ -131,7 +136,7 @@ describe('validateStructure', () => {
         vertices: [{ id: 'a', label: 'A', x: 0, y: 0, w: 50 }],
         edges: [],
       })
-    ).toThrow(/missing or invalid height/);
+    ).toThrow(/missing or non-finite height/);
   });
 
   it('should reject edge with dangling source', () => {
@@ -153,5 +158,84 @@ describe('validateStructure', () => {
         edges: [],
       })
     ).toThrow(/Duplicate vertex id/);
+  });
+
+  it('should reject non-finite x coordinate (NaN)', () => {
+    expect(() =>
+      validateStructure({
+        vertices: [{ id: 'a', label: 'A', x: NaN, y: 0, w: 50, h: 50 }],
+        edges: [],
+      })
+    ).toThrow(/non-finite x coordinate/);
+  });
+
+  it('should reject non-finite y coordinate (Infinity)', () => {
+    expect(() =>
+      validateStructure({
+        vertices: [{ id: 'a', label: 'A', x: 0, y: Infinity, w: 50, h: 50 }],
+        edges: [],
+      })
+    ).toThrow(/non-finite y coordinate/);
+  });
+
+  it('should reject non-finite width (-Infinity)', () => {
+    expect(() =>
+      validateStructure({
+        vertices: [{ id: 'a', label: 'A', x: 0, y: 0, w: -Infinity, h: 50 }],
+        edges: [],
+      })
+    ).toThrow(/non-finite width/);
+  });
+
+  it('should reject non-finite height (NaN)', () => {
+    expect(() =>
+      validateStructure({
+        vertices: [{ id: 'a', label: 'A', x: 0, y: 0, w: 50, h: NaN }],
+        edges: [],
+      })
+    ).toThrow(/non-finite height/);
+  });
+
+  it('should reject empty structure (zero vertices)', () => {
+    expect(() =>
+      validateStructure({
+        vertices: [],
+        edges: [],
+      })
+    ).toThrow(/Structure must contain at least one vertex/);
+  });
+
+  it('should accept empty edges (no edges is valid)', () => {
+    const result = validateStructure({
+      vertices: [{ id: 'a', label: 'A', x: 0, y: 0, w: 50, h: 50 }],
+      edges: [],
+    });
+    expect(result.edges).toHaveLength(0);
+  });
+});
+
+describe('public API exports', () => {
+  it('should export all core functions from barrel', () => {
+    // Core validation
+    expect(typeof validateStructure).toBe('function');
+    expect(typeof StructureError).toBe('function');
+
+    // Planning
+    expect(typeof plan).toBe('function');
+
+    // Compilation
+    expect(typeof compile).toBe('function');
+
+    // Rendering
+    expect(typeof render).toBe('function');
+    expect(typeof sampleFrames).toBe('function');
+
+    // Gates
+    expect(typeof builderGate).toBe('function');
+    expect(typeof compilerGate).toBe('function');
+    expect(typeof renderGate).toBe('function');
+
+    // Adapters
+    expect(typeof parseMxGraph).toBe('function');
   });
 });

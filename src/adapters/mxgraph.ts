@@ -38,14 +38,27 @@ export function parseMxGraph(xml: string): Structure {
   const cells = doc.querySelectorAll('mxCell');
 
   // First pass: extract vertices (cells with vertex="1" attribute and mxGeometry child)
+  // Structural cells (id="0" or id="1", or parent="0") are skipped; real nodes are processed.
   for (const cell of cells) {
     const isVertex = cell.getAttribute('vertex') === '1';
     if (isVertex) {
       const id = cell.getAttribute('id');
+      const parent = cell.getAttribute('parent');
+
+      // Skip structural root cells: id="0", id="1", or any cell with parent="0"
+      if (id === '0' || id === '1' || parent === '0') {
+        continue;
+      }
+
       const label = cell.getAttribute('value') || '';
       const geometry = cell.querySelector('mxGeometry');
 
-      if (id && geometry) {
+      // Real vertex cells must have geometry; throw loudly if missing
+      if (!geometry) {
+        throw new Error(`mxGraph vertex '${id}' has no geometry`);
+      }
+
+      if (id) {
         const x = parseFloat(geometry.getAttribute('x') || '0');
         const y = parseFloat(geometry.getAttribute('y') || '0');
         const w = parseFloat(geometry.getAttribute('width') || '0');

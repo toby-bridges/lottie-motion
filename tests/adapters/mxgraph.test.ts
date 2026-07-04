@@ -86,22 +86,18 @@ describe('mxGraph adapter', () => {
     expect(() => parseMxGraph(invalidXml)).toThrow();
   });
 
-  it('throws error when vertex has no geometry', () => {
+  it('throws error when real vertex has no geometry', () => {
     const xmlNoGeometry = `<?xml version="1.0" encoding="UTF-8"?>
 <mxGraphModel>
   <root>
     <mxCell id="0" parent="1" vertex="1" />
     <mxCell id="1" parent="0" />
-    <!-- Vertex without mxGeometry child (will be skipped during parsing) -->
+    <!-- Real vertex without mxGeometry child: should throw -->
     <mxCell id="nodeA" value="A" parent="1" vertex="1" />
-    <!-- Edge referencing the skipped vertex creates a dangling edge -->
-    <mxCell id="edge1" edge="1" parent="1" source="nodeA" target="nodeA">
-      <mxGeometry as="geometry" />
-    </mxCell>
   </root>
 </mxGraphModel>`;
 
-    expect(() => parseMxGraph(xmlNoGeometry)).toThrow();
+    expect(() => parseMxGraph(xmlNoGeometry)).toThrow(/mxGraph vertex 'nodeA' has no geometry/);
   });
 
   it('throws error when vertex has zero or negative dimensions', () => {

@@ -41,6 +41,11 @@ export function validateStructure(input: unknown): Structure {
   const vertices = obj.vertices as unknown[];
   const edges = obj.edges as unknown[];
 
+  // Check that structure is not empty (must have at least one vertex)
+  if (vertices.length === 0) {
+    throw new StructureError('Structure must contain at least one vertex');
+  }
+
   // Track vertex ids for edge validation
   const vertexIds = new Set<string>();
 
@@ -68,18 +73,18 @@ export function validateStructure(input: unknown): Structure {
       throw new StructureError(`Vertex "${vertex.id}" must have a string label`);
     }
 
-    // Check geometry (all required, all numeric, w/h > 0)
-    if (typeof vertex.x !== 'number') {
-      throw new StructureError(`Vertex "${vertex.id}" missing or invalid x coordinate`);
+    // Check geometry (all required, all numeric and finite, w/h > 0)
+    if (typeof vertex.x !== 'number' || !Number.isFinite(vertex.x)) {
+      throw new StructureError(`Vertex "${vertex.id}" has missing or non-finite x coordinate`);
     }
-    if (typeof vertex.y !== 'number') {
-      throw new StructureError(`Vertex "${vertex.id}" missing or invalid y coordinate`);
+    if (typeof vertex.y !== 'number' || !Number.isFinite(vertex.y)) {
+      throw new StructureError(`Vertex "${vertex.id}" has missing or non-finite y coordinate`);
     }
-    if (typeof vertex.w !== 'number') {
-      throw new StructureError(`Vertex "${vertex.id}" missing or invalid width`);
+    if (typeof vertex.w !== 'number' || !Number.isFinite(vertex.w)) {
+      throw new StructureError(`Vertex "${vertex.id}" has missing or non-finite width`);
     }
-    if (typeof vertex.h !== 'number') {
-      throw new StructureError(`Vertex "${vertex.id}" missing or invalid height`);
+    if (typeof vertex.h !== 'number' || !Number.isFinite(vertex.h)) {
+      throw new StructureError(`Vertex "${vertex.id}" has missing or non-finite height`);
     }
 
     if (vertex.w <= 0) {

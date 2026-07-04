@@ -585,22 +585,5 @@ describe('builderGate', () => {
       expect(result.pass).toBe(true);
       expect(result.failures).toHaveLength(0);
     });
-
-    it('passes when structure is empty (no vertices, no edges)', () => {
-      // Empty structure: vacuously satisfies "every vertex revealed"
-      const structure: Structure = { vertices: [], edges: [] };
-
-      const timeline: TimelineIR = {
-        fps: 30,
-        width: 800,
-        height: 600,
-        totalFrames: 100,
-        events: []
-      };
-
-      const result = builderGate(timeline, structure);
-      expect(result.pass).toBe(true);
-      expect(result.failures).toHaveLength(0);
-    });
   });
 });
