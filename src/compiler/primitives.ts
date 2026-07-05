@@ -13,10 +13,24 @@ export function keyframe(t: number, s: number) {
   ])
 }
 
-// Keyframe helper for multidimensional values: { t, s:[a, b, c, ...] }
+// Easing tangent handle ({ x:[v], y:[v] }) for a keyframe in/out bezier.
+function easeHandle(key: 'i' | 'o') {
+  const title = (key === 'i' ? 'keyframe-in-tangent' : 'keyframe-out-tangent') as ElementTitle
+  return el(key, title, ob('keyframe-bezier-handle' as ObjectTitle, [
+    cl('x', 'keyframe-bezier-handle-x-axis' as any, ar('static-values-children' as any, [pt(0.5)])),
+    cl('y', 'keyframe-bezier-handle-y-axis' as any, ar('static-values-children' as any, [pt(0.5)])),
+  ]))
+}
+
+// Keyframe helper for multidimensional values: { t, i, o, s:[a, b, c, ...] }.
+// NOTE: multidimensional animated keyframes MUST carry i/o bezier handles or
+// lottie-web's canvas renderer silently fails to render the whole layer (1D
+// scalar keyframes like opacity/trim tolerate their absence; multidim does not).
 export function keyframeVec(t: number, arr: number[]) {
   return ob(T.object.keyframe, [
     at('t', T.number.keyframeTime, pt(t)),
+    easeHandle('i'),
+    easeHandle('o'),
     cl('s', T.collection.keyframeValue, ar(T.array.keyframeValueChildren, arr.map((n) => pt(n)))),
   ])
 }

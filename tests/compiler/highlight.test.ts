@@ -37,10 +37,16 @@ describe('highlight orchestration', () => {
     expect(layer.ks.s.a).toBe(1) // animated
     expect(layer.ks.s.k.length).toBe(3) // 3 keyframes (start, mid, end)
 
-    // Scale keyframe values are MULTIDIMENSIONAL vectors
-    expect(layer.ks.s.k[0]).toEqual({ t: 90, s: [100, 100, 100] })
-    expect(layer.ks.s.k[1]).toEqual({ t: 105, s: [105, 105, 105] }) // midpoint of 90-120
-    expect(layer.ks.s.k[2]).toEqual({ t: 120, s: [100, 100, 100] })
+    // Scale keyframe values are MULTIDIMENSIONAL vectors, with i/o bezier
+    // handles (required or lottie-web silently fails to render the layer).
+    expect(layer.ks.s.k[0].t).toBe(90)
+    expect(layer.ks.s.k[0].s).toEqual([100, 100, 100])
+    expect(layer.ks.s.k[1].t).toBe(105) // midpoint of 90-120
+    expect(layer.ks.s.k[1].s).toEqual([105, 105, 105])
+    expect(layer.ks.s.k[2].t).toBe(120)
+    expect(layer.ks.s.k[2].s).toEqual([100, 100, 100])
+    expect(layer.ks.s.k[0].i).toBeDefined() // easing handles present
+    expect(layer.ks.s.k[0].o).toBeDefined()
 
     // Opacity should still be intact (fadeIn)
     expect(layer.ks.o.a).toBe(1)
@@ -142,9 +148,12 @@ describe('end-to-end orchestration', () => {
     expect(node1.ks.o.k[1]).toEqual({ t: 30, s: [100] })
     expect(node1.ks.s).toBeDefined()
     expect(node1.ks.s.a).toBe(1) // animated
-    expect(node1.ks.s.k[0]).toEqual({ t: 120, s: [100, 100, 100] })
-    expect(node1.ks.s.k[1]).toEqual({ t: 135, s: [105, 105, 105] }) // midpoint
-    expect(node1.ks.s.k[2]).toEqual({ t: 150, s: [100, 100, 100] })
+    expect(node1.ks.s.k[0].t).toBe(120)
+    expect(node1.ks.s.k[0].s).toEqual([100, 100, 100])
+    expect(node1.ks.s.k[1].t).toBe(135) // midpoint
+    expect(node1.ks.s.k[1].s).toEqual([105, 105, 105])
+    expect(node1.ks.s.k[2].t).toBe(150)
+    expect(node1.ks.s.k[2].s).toEqual([100, 100, 100])
 
     // node-2: has fadeIn (0→100 opacity over 40-70), no highlight
     const node2 = result.layers[1]

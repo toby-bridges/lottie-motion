@@ -22,7 +22,8 @@ describe('planner/scheduling', () => {
       x: 0,
       y: 0,
       w: 100,
-      h: 50
+      h: 50,
+      label: 'Node A'
     });
 
     expect(reveals[1]).toEqual({
@@ -33,7 +34,8 @@ describe('planner/scheduling', () => {
       x: 120,
       y: 0,
       w: 100,
-      h: 50
+      h: 50,
+      label: 'Node B'
     });
 
     expect(reveals[2]).toEqual({
@@ -44,7 +46,8 @@ describe('planner/scheduling', () => {
       x: 240,
       y: 0,
       w: 100,
-      h: 50
+      h: 50,
+      label: 'Node C'
     });
   });
 

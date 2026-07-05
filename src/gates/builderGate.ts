@@ -138,6 +138,12 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
       if (event.h !== vertex.h) {
         failures.push(`Reveal '${event.target}': h mismatch (event=${event.h}, vertex=${vertex.h})`);
       }
+
+      // Label freeze (only when the reveal carries a label): must match verbatim,
+      // the textual sibling of the spatial-freeze checks above.
+      if (event.label !== undefined && event.label !== vertex.label) {
+        failures.push(`Reveal '${event.target}': label mismatch (event="${event.label}", vertex="${vertex.label}")`);
+      }
     } else if (event.kind === 'flow') {
       // Edge flow constraint: must start after both source and target are revealed
       const sourceEndF = revealEndFrames.get(event.from);

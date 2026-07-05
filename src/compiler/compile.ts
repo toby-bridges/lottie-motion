@@ -269,5 +269,11 @@ export function compile(timeline: TimelineIR): LottieJSON {
     }
   })
 
+  // NOTE: node labels ride through the Timeline IR (reveal.label) but are NOT
+  // yet drawn. A Lottie text layer (ty:5) does not render under the render
+  // gate's headless stack (jsdom + node-canvas + lottie-web): the text shows
+  // nothing AND aborts the whole frame, blanking every other layer too. Drawing
+  // labels needs either a headless-text-capable renderer or vector glyph paths
+  // (font-to-path) — deferred rather than shipped broken.
   return rootCanvasAsm(timeline, layers)
 }

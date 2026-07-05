@@ -33,6 +33,25 @@ structurally, so serving both costs almost nothing over serving one.
 - **Overrides** — see below.
 - Use cases 2 & 3 (concept→animation, icon→micro-animation) — see below.
 
+## v0.1 closing-animation notes (2026-07-05)
+
+Two "reveal → flow → **highlight**" details resolved after the initial gate work:
+
+- **Closing highlight — implemented.** The planner schedules a closing highlight
+  (scale pulse) on sink vertices, falling back to the last vertex in reveal
+  order for cyclic graphs (which have no sink), so every valid input gets one.
+  Wiring it surfaced a latent compiler bug: multidimensional animated keyframes
+  MUST carry `i`/`o` bezier easing handles or lottie-web silently fails to render
+  the layer (1-D scalars like opacity/trim tolerate their absence). Fixed in
+  `keyframeVec`.
+- **Node labels — carried through the IR, rendering deferred.** `reveal.label`
+  now flows through the Timeline IR and is checked by the builder gate's
+  label-freeze invariant (the textual sibling of spatial-freeze). Labels are NOT
+  drawn: a Lottie text layer (`ty:5`) does not render under the render gate's
+  headless stack (jsdom + node-canvas + lottie-web) — it draws nothing AND blanks
+  the whole frame. Visible labels need a headless-text-capable renderer or vector
+  glyph paths (font-to-path); deferred rather than shipped broken.
+
 ## Deferred — Overrides (semantic-hook, re-enter-planner)
 
 The planner signature **reserves** the `overrides` parameter slot

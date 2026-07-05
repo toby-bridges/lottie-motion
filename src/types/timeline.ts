@@ -15,6 +15,12 @@ export interface TimelineEventReveal {
   y: number;
   w: number;
   h: number;
+  /**
+   * Node label, copied verbatim from the input vertex (spatial-freeze sibling).
+   * Optional so hand-built test timelines need not supply it; the planner always
+   * populates it. The compiler renders a text layer only when it is non-empty.
+   */
+  label?: string;
 }
 
 export interface TimelineEventFlow {
