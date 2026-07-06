@@ -1,0 +1,11 @@
+{
+  "vertices": [
+    { "id": "a", "label": "Start", "x": 0, "y": 0, "w": 100, "h": 50 },
+    { "id": "b", "label": "Middle", "x": 150, "y": 0, "w": 100, "h": 50 },
+    { "id": "c", "label": "End", "x": 300, "y": 0, "w": 100, "h": 50 }
+  ],
+  "edges": [
+    { "id": "e1", "source": "a", "target": "b", "label": "" },
+    { "id": "e2", "source": "b", "target": "c", "label": "" }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "name": "lottie-motion",
+  "version": "0.1.0",
+  "description": "Deterministic compiler: architecture diagram/flowchart → Lottie vector animation",
+  "entry": "npx tsx src/cli.ts",
+  "type": "cli",
+  "requires": {
+    "input_file": {
+      "description": "Path to structure.json (Vertex+Edge graph)",
+      "format": "json",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "vertices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "label": { "type": "string" },
+                "x": { "type": "number" },
+                "y": { "type": "number" },
+                "w": { "type": "number" },
+                "h": { "type": "number" }
+              },
+              "required": ["id", "label", "x", "y", "w", "h"]
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "source": { "type": "string" },
+                "target": { "type": "string" },
+                "label": { "type": "string" }
+              },
+              "required": ["id", "source", "target", "label"]
+            }
+          }
+        },
+        "required": ["vertices", "edges"]
+      }
+    }
+  },
+  "produces": {
+    "output_file": {
+      "description": "Path to animation.json (Lottie JSON)",
+      "format": "json"
+    }
+  },
+  "flags": [
+    { "name": "input", "type": "string", "required": true, "description": "Path to structure.json" },
+    { "name": "output", "type": "string", "required": true, "description": "Path to animation.json" },
+    { "name": "verify", "type": "boolean", "required": false, "description": "Run three gates (Builder, Compiler, Render)" },
+    { "name": "check", "type": "boolean", "required": false, "description": "Validate output contract" }
+  ],
+  "exitCodes": {
+    "0": "Success",
+    "1": "Validation/gate/contract failure"
+  }
+}

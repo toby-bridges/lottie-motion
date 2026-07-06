@@ -33,6 +33,46 @@ structurally, so serving both costs almost nothing over serving one.
 - **Overrides** — see below.
 - Use cases 2 & 3 (concept→animation, icon→micro-animation) — see below.
 
+## v0.1 closing-animation notes (2026-07-05)
+
+Two "reveal → flow → **highlight**" details resolved after the initial gate work:
+
+- **Closing highlight — implemented.** The planner schedules a closing highlight
+  (scale pulse) on sink vertices, falling back to the last vertex in reveal
+  order for cyclic graphs (which have no sink), so every valid input gets one.
+  Wiring it surfaced a latent compiler bug: multidimensional animated keyframes
+  MUST carry `i`/`o` bezier easing handles or lottie-web silently fails to render
+  the layer (1-D scalars like opacity/trim tolerate their absence). Fixed in
+  `keyframeVec`.
+- **Node labels — carried through the IR, rendering deferred.** `reveal.label`
+  now flows through the Timeline IR and is checked by the builder gate's
+  label-freeze invariant (the textual sibling of spatial-freeze). Labels are NOT
+  drawn: a Lottie text layer (`ty:5`) does not render under the render gate's
+  headless stack (jsdom + node-canvas + lottie-web) — it draws nothing AND blanks
+  the whole frame. Visible labels need a headless-text-capable renderer or vector
+  glyph paths (font-to-path); deferred rather than shipped broken.
+
+## Deferred — Node label rendering (vector glyph paths)
+
+Chosen follow-up path (Pareto plan B, 2026-07-05): render labels as **filled
+vector shape paths** via a font-to-path library (e.g. opentype.js), not as
+Lottie text layers.
+
+- **Why not `ty:5` text layers:** verified 2026-07-05 — under the render gate's
+  headless stack (jsdom + node-canvas + lottie-web) a text layer draws nothing
+  AND blanks the entire frame. Text layers are a dead end for this pipeline.
+- **Why not swapping the renderer (puppeteer):** a heavy browser runtime is
+  pre-mortem death cause #1 (fusion-plugin); the render gate's environment
+  stays minimal.
+- **Determinism requirements when built:** vendor a fixed font file with the
+  package (no system-font lookup — same input must yield byte-identical glyph
+  paths on every machine); glyph outlines become ordinary shape layers, so all
+  three gates work unchanged; label text comes verbatim from `reveal.label`.
+- **Already in place on the v0.1 branch:** `TimelineEventReveal.label` flows
+  through the planner, and the builder gate enforces label-freeze (event label
+  === input vertex label). The follow-up only adds the compiler-side glyph
+  rendering; no IR or gate changes expected.
+
 ## Deferred — Overrides (semantic-hook, re-enter-planner)
 
 The planner signature **reserves** the `overrides` parameter slot

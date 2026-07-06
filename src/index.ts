@@ -1,0 +1,10 @@
+export * from './types/index.js';
+export type { LottieJSON } from './types/compiler.js';
+export { validateStructure, StructureError } from './validate.js';
+export { plan } from './planner/plan.js';
+export { compile } from './compiler/compile.js';
+export { render, sampleFrames } from './renderer/render.js';
+export type { Frame } from './renderer/render.js';
+export { builderGate, compilerGate, renderGate } from './gates/index.js';
+export type { GateResult } from './gates/index.js';
+export { parseMxGraph } from './adapters/mxgraph.js';
