@@ -5,10 +5,16 @@ import stringify from '@lottiefiles/relottie-stringify'
 import type { TimelineIR } from '../types/timeline.js'
 import type { ObjectTitle, ElementTitle } from '@lottiefiles/last'
 
-// Keyframe helper: { t, s:[value] }
+// Keyframe helper: { t, i, o, s:[value] }.
+// NOTE: i/o easing handles are REQUIRED on every animated keyframe. Without
+// them, lottie-web's canvas renderer corrupts the WHOLE composition while the
+// keyframed value is interpolating (e.g. boxes vanish while an un-eased trim
+// animates) — verified empirically 2026-07-06; see also keyframeVec below.
 export function keyframe(t: number, s: number) {
   return ob(T.object.keyframe, [
     at('t', T.number.keyframeTime, pt(t)),
+    easeHandle('i'),
+    easeHandle('o'),
     cl('s', T.collection.keyframeValue, ar(T.array.keyframeValueChildren, [pt(s)])),
   ])
 }

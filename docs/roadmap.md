@@ -52,11 +52,16 @@ Two "reveal → flow → **highlight**" details resolved after the initial gate 
   the whole frame. Visible labels need a headless-text-capable renderer or vector
   glyph paths (font-to-path); deferred rather than shipped broken.
 
-## Deferred — Node label rendering (vector glyph paths)
+## Node label rendering (vector glyph paths) — IMPLEMENTED 2026-07-06
 
-Chosen follow-up path (Pareto plan B, 2026-07-05): render labels as **filled
-vector shape paths** via a font-to-path library (e.g. opentype.js), not as
-Lottie text layers.
+Shipped as designed below (Pareto plan B, 2026-07-05): labels render as **filled
+vector glyph contours** via opentype.js + vendored Fira Sans (SIL OFL), inside
+the reveal layer (so they inherit fade-in and highlight pulse). Implementing it
+surfaced and fixed a deeper latent bug: **every** animated keyframe needs `i`/`o`
+easing handles — without them lottie-web's canvas renderer corrupts the whole
+composition while the value interpolates (boxes vanished while an un-eased trim
+animated; pre-existing since v0.1, masked by the render gate's has_motion-only
+check). Original decision record follows.
 
 - **Why not `ty:5` text layers:** verified 2026-07-05 — under the render gate's
   headless stack (jsdom + node-canvas + lottie-web) a text layer draws nothing

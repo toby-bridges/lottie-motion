@@ -14,6 +14,11 @@ describe('packaging', () => {
       expect(existsSync(schemaPath)).toBe(true);
     });
 
+    it('copies the vendored label font (and its license) to dist during build', () => {
+      expect(existsSync('dist/compiler/fonts/FiraSans-Regular.ttf')).toBe(true);
+      expect(existsSync('dist/compiler/fonts/LICENSE-FiraSans.txt')).toBe(true);
+    });
+
     it('built compilerGate loads schema and validates without ENOENT', async () => {
       // Dynamically import the BUILT compilerGate from dist
       const { compilerGate } = await import('../dist/gates/compilerGate.js');
@@ -66,6 +71,8 @@ describe('packaging', () => {
       expect(fileNames.has('dist/index.js')).toBe(true);
       expect(fileNames.has('dist/gates/compilerGate.js')).toBe(true);
       expect(fileNames.has('dist/gates/schema/lottie.schema.json')).toBe(true);
+      expect(fileNames.has('dist/compiler/fonts/FiraSans-Regular.ttf')).toBe(true);
+      expect(fileNames.has('dist/compiler/fonts/LICENSE-FiraSans.txt')).toBe(true);
 
       // Verify that SOURCE files are NOT in the package
       // (since files field limits to dist only)

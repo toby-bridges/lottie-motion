@@ -51,8 +51,10 @@ describe('highlight orchestration', () => {
     // Opacity should still be intact (fadeIn)
     expect(layer.ks.o.a).toBe(1)
     expect(layer.ks.o.k.length).toBe(2)
-    expect(layer.ks.o.k[0]).toEqual({ t: 0, s: [0] })
-    expect(layer.ks.o.k[1]).toEqual({ t: 30, s: [100] })
+    expect(layer.ks.o.k[0].t).toBe(0)
+    expect(layer.ks.o.k[0].s).toEqual([0])
+    expect(layer.ks.o.k[1].t).toBe(30)
+    expect(layer.ks.o.k[1].s).toEqual([100])
   })
 
   it('keeps static scale for reveal without highlight', () => {
@@ -144,8 +146,10 @@ describe('end-to-end orchestration', () => {
     // node-1: has fadeIn (0→100 opacity over 0-30) and highlight (scale 100→105→100 over 120-150)
     const node1 = result.layers[0]
     expect(node1.ks.o.a).toBe(1)
-    expect(node1.ks.o.k[0]).toEqual({ t: 0, s: [0] })
-    expect(node1.ks.o.k[1]).toEqual({ t: 30, s: [100] })
+    expect(node1.ks.o.k[0].t).toBe(0)
+    expect(node1.ks.o.k[0].s).toEqual([0])
+    expect(node1.ks.o.k[1].t).toBe(30)
+    expect(node1.ks.o.k[1].s).toEqual([100])
     expect(node1.ks.s).toBeDefined()
     expect(node1.ks.s.a).toBe(1) // animated
     expect(node1.ks.s.k[0].t).toBe(120)
@@ -157,8 +161,10 @@ describe('end-to-end orchestration', () => {
 
     // node-2: has fadeIn (0→100 opacity over 40-70), no highlight
     const node2 = result.layers[1]
-    expect(node2.ks.o.k[0]).toEqual({ t: 40, s: [0] })
-    expect(node2.ks.o.k[1]).toEqual({ t: 70, s: [100] })
+    expect(node2.ks.o.k[0].t).toBe(40)
+    expect(node2.ks.o.k[0].s).toEqual([0])
+    expect(node2.ks.o.k[1].t).toBe(70)
+    expect(node2.ks.o.k[1].s).toEqual([100])
     expect(node2.ks.s.a).toBe(0) // static scale (no highlight)
 
     // edge-1: has path + stroke + trim-path (0→100 over 80-110) inside gr group
@@ -168,7 +174,10 @@ describe('end-to-end orchestration', () => {
     expect(group.ty).toBe('gr')
     const trimPathShape = group.it.find((s: any) => s.ty === 'tm')
     expect(trimPathShape).toBeDefined()
-    expect(trimPathShape.s.k[0]).toEqual({ t: 80, s: [0] })
-    expect(trimPathShape.s.k[1]).toEqual({ t: 110, s: [100] })
+    // trim END animates (line draws itself); start is static 0
+    expect(trimPathShape.e.k[0].t).toBe(80)
+    expect(trimPathShape.e.k[0].s).toEqual([0])
+    expect(trimPathShape.e.k[1].t).toBe(110)
+    expect(trimPathShape.e.k[1].s).toEqual([100])
   })
 })

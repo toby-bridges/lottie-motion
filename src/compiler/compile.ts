@@ -2,6 +2,7 @@ import { TITLES as T } from '@lottiefiles/last/titles'
 import { el, ob, ar, at, pt, cl } from '@lottiefiles/last-builder'
 import type { TimelineIR, TimelineEventReveal, TimelineEventFlow, TimelineEventHighlight } from '../types/timeline.js'
 import { rootCanvasAsm, keyframe, keyframeVec, staticVal, staticMulti } from './primitives.js'
+import { labelToContours, GlyphContour } from './labels.js'
 import type { LottieJSON } from '../types/compiler.js'
 import type { ObjectTitle } from '@lottiefiles/last'
 
@@ -32,6 +33,70 @@ function scaleElement(highlightEvent?: TimelineEventHighlight) {
       keyframeVec(highlightEvent.endF, [100, 100, 100]),
     ])),
   ]))
+}
+
+/**
+ * buildGlyphPath: one closed glyph contour → a static 'sh' bezier shape.
+ */
+function buildGlyphPath(contour: GlyphContour, ind: number) {
+  const wrap = (title: string, pts: [number, number][]) =>
+    cl(title[0] as any, `bezier-${title}` as any, ar(`bezier-${title}-children` as any,
+      pts.map((p) => ar(`bezier-${title}` as any, [pt(p[0]), pt(p[1])]))))
+
+  const bezier = el('k', 'animated-shape-bezier', ob('bezier', [
+    at('c', 'bezier-closed', pt(true)),
+    cl('v', 'bezier-vertices', ar('bezier-vertices-children', contour.v.map((p) => bezierPoint(p)))),
+    wrap('in-tangents', contour.i),
+    wrap('out-tangents', contour.o),
+  ]))
+
+  return ob('shape-path', [
+    at('ty', T.string.shapeType, pt('sh')),
+    at('ind', 'shape-path-index', pt(ind)),
+    el('ks', 'animated-shape-prop', ob('animated-shape-static', [
+      at('a', T.intBoolean.animated, pt(0)),
+      bezier,
+    ])),
+  ])
+}
+
+/**
+ * buildGlyphGroup: a node label → one shape group of filled glyph contours
+ * (font-to-path; see labels.ts). Returns null when the label yields nothing.
+ * The group lives INSIDE the reveal layer, so it inherits the fade-in opacity
+ * and any highlight scale pulse, and is centred on the rect automatically
+ * (contours are centred on the origin, the rect's centre in layer space).
+ */
+function buildGlyphGroup(label: string, w: number, h: number) {
+  const { contours } = labelToContours(label, { w, h })
+  if (contours.length === 0) {
+    return null
+  }
+
+  const paths = contours.map((contour, idx) => buildGlyphPath(contour, idx))
+
+  const fill = ob('shape-fill', [
+    at('ty', T.string.shapeType, pt('fl')),
+    el('c', 'shape-fill-color', ob('animated-color-static', [
+      at('a', T.intBoolean.animated, pt(0)),
+      cl('k', 'color-rgba', ar('static-values-children', [pt(1), pt(1), pt(1), pt(1)])),
+    ])),
+    staticVal('o', 'shape-fill-opacity', 100),
+  ])
+
+  const trShape = ob('shape-transform', [
+    at('ty', T.string.shapeType, pt('tr')),
+    staticMulti('p', 'animated-position-prop', 'animated-position-static', [0, 0]),
+    staticMulti('a', 'anchor-point', 'animated-position-static', [0, 0]),
+    staticMulti('s', 'layer-transform-scale', 'animated-multidimensional-static', [100, 100]),
+    staticVal('r', 'rotation-clockwise', 0),
+    staticVal('o', 'shape-fill-opacity', 100),
+  ])
+
+  return ob('shape-group', [
+    at('ty', T.string.shapeType, pt('gr')),
+    cl('it', T.collection.shapeList, ar(T.array.shapeListChildren, [...paths, fill, trShape])),
+  ])
 }
 
 /**
@@ -98,7 +163,14 @@ function buildRevealLayer(
     cl('it', T.collection.shapeList, ar(T.array.shapeListChildren, [rect, fill, trShape])),
   ])
 
-  const shapes = cl('shapes', T.collection.shapeList, ar(T.array.shapeListChildren, [group]))
+  // Label glyphs render as a second group in the SAME layer, so they inherit
+  // the fade-in and highlight pulse and stay centred on the rect. Shape items
+  // earlier in the list draw ON TOP, so glyphs must come before the rect group
+  // or the opaque rect hides them.
+  const glyphGroup = event.label ? buildGlyphGroup(event.label, event.w, event.h) : null
+  const groups = glyphGroup ? [glyphGroup, group] : [group]
+
+  const shapes = cl('shapes', T.collection.shapeList, ar(T.array.shapeListChildren, groups))
 
   // NOTE: the per-layer ip/op/st/bm are REQUIRED for the layer to render.
   return ob(T.object.layerShape, [
@@ -167,16 +239,21 @@ function buildFlowLayer(
     at('bm', 'blend-mode-normal', pt(0)),
   ])
 
+  // Trim END animates 0→100 ("the line draws itself", design §4); trim start
+  // stays 0. The previous form animated START 0→100 with end=100, which is
+  // reversed: the edge was fully visible BEFORE its flow window (first
+  // keyframe value holds beforehand) and progressively ERASED during it,
+  // vanishing by the final frame.
   const trim = ob('shape-trim', [
     at('ty', T.string.shapeType, pt('tm')),
-    el('s', 'shape-trim-start', ob(T.object.animatedValue, [
+    staticVal('s', 'shape-trim-start', 0),
+    el('e', 'shape-trim-end', ob(T.object.animatedValue, [
       at('a', T.intBoolean.animated, pt(1)),
       cl('k', T.collection.keyframeList, ar(T.array.keyframeListChildren, [
         keyframe(event.startF, 0),
         keyframe(event.endF, 100),
       ])),
     ])),
-    staticVal('e', 'shape-trim-end', 100),
     staticVal('o', 'shape-trim-offset', 0),
     at('m', 'trim-multiple-shapes-simultaneously', pt(1)),
   ])
@@ -269,11 +346,5 @@ export function compile(timeline: TimelineIR): LottieJSON {
     }
   })
 
-  // NOTE: node labels ride through the Timeline IR (reveal.label) but are NOT
-  // yet drawn. A Lottie text layer (ty:5) does not render under the render
-  // gate's headless stack (jsdom + node-canvas + lottie-web): the text shows
-  // nothing AND aborts the whole frame, blanking every other layer too. Drawing
-  // labels needs either a headless-text-capable renderer or vector glyph paths
-  // (font-to-path) — deferred rather than shipped broken.
   return rootCanvasAsm(timeline, layers)
 }
