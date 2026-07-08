@@ -50,6 +50,18 @@ export interface TimelineIR {
   height: number;
   /** Total frame count (inclusive range 0..totalFrames-1) */
   totalFrames: number;
+  /**
+   * Canvas translation the COMPILER adds to every layer so that content whose
+   * input coordinates are negative or far from the origin still lands inside the
+   * [0,width]×[0,height] canvas. This is the ONLY place a translation lives:
+   * reveal events keep their input x/y/w/h frozen verbatim (builder-gate
+   * spatial-freeze red line), and the planner never mutates geometry — it only
+   * publishes this offset (= padding − bboxMin). Optional so hand-built test
+   * timelines need not supply it; the compiler treats an absent value as 0,
+   * reproducing the pre-viewport behaviour. Sibling convention to `label?`.
+   */
+  offsetX?: number;
+  offsetY?: number;
   /** Timeline events sorted by startF */
   events: TimelineEvent[];
 }

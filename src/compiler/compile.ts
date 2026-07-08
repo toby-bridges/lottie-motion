@@ -110,6 +110,8 @@ function buildRevealLayer(
   event: TimelineEventReveal,
   layerIndex: number,
   totalFrames: number,
+  offsetX: number,
+  offsetY: number,
   highlightEvent?: TimelineEventHighlight
 ): any {
   // animated opacity 0 -> 100 over [startF, endF]
@@ -133,7 +135,9 @@ function buildRevealLayer(
     // layer to the raw x/y put the box's CENTRE at the input's top-left corner,
     // shifting every node by (w/2, h/2) and leaving flow edges pointing at empty
     // space just outside the (mis-)rendered box.
-    staticMulti('p', 'translation', 'animated-position-static', [event.x + event.w / 2, event.y + event.h / 2, 0]),
+    // The +offset shifts the whole diagram into the fitted canvas (see plan.ts);
+    // event.x/y themselves stay the frozen input values.
+    staticMulti('p', 'translation', 'animated-position-static', [event.x + event.w / 2 + offsetX, event.y + event.h / 2 + offsetY, 0]),
     staticMulti('a', 'anchor-point', 'animated-position-static', [0, 0, 0]),
     scale,
   ]))
@@ -208,10 +212,14 @@ function buildFlowLayer(
   fromBox: { x: number; y: number; w: number; h: number },
   toBox: { x: number; y: number; w: number; h: number },
   layerIndex: number,
-  totalFrames: number
+  totalFrames: number,
+  offsetX: number,
+  offsetY: number
 ): any {
-  const fromC: [number, number] = [fromBox.x + fromBox.w / 2, fromBox.y + fromBox.h / 2]
-  const toC: [number, number] = [toBox.x + toBox.w / 2, toBox.y + toBox.h / 2]
+  // Edge endpoints are node centres, shifted by the same canvas offset as the
+  // reveal layers (see plan.ts / buildRevealLayer) so edges stay attached.
+  const fromC: [number, number] = [fromBox.x + fromBox.w / 2 + offsetX, fromBox.y + fromBox.h / 2 + offsetY]
+  const toC: [number, number] = [toBox.x + toBox.w / 2 + offsetX, toBox.y + toBox.h / 2 + offsetY]
 
   const bezier = el('k', 'animated-shape-bezier', ob('bezier', [
     at('c', 'bezier-closed', pt(false)),
@@ -311,6 +319,11 @@ export function compile(timeline: TimelineIR): LottieJSON {
   const layers: any[] = []
   let layerIndex = 1
 
+  // Canvas offset published by the planner (padding − bboxMin). Absent on
+  // hand-built timelines → 0, i.e. the pre-viewport identity translation.
+  const offsetX = timeline.offsetX ?? 0
+  const offsetY = timeline.offsetY ?? 0
+
   // Build a map of reveal events by target id (for flow event lookups)
   const revealMap = new Map<string, TimelineEventReveal>()
 
@@ -326,7 +339,7 @@ export function compile(timeline: TimelineIR): LottieJSON {
   timeline.events.forEach(event => {
     if (event.kind === 'reveal') {
       const highlight = highlightMap.get(event.target)
-      const layer = buildRevealLayer(event, layerIndex, timeline.totalFrames, highlight)
+      const layer = buildRevealLayer(event, layerIndex, timeline.totalFrames, offsetX, offsetY, highlight)
       layers.push(layer)
       revealMap.set(event.target, event)
       layerIndex++
@@ -346,7 +359,7 @@ export function compile(timeline: TimelineIR): LottieJSON {
       const fromBox = { x: fromEvent.x, y: fromEvent.y, w: fromEvent.w, h: fromEvent.h }
       const toBox = { x: toEvent.x, y: toEvent.y, w: toEvent.w, h: toEvent.h }
 
-      const layer = buildFlowLayer(event, fromBox, toBox, layerIndex, timeline.totalFrames)
+      const layer = buildFlowLayer(event, fromBox, toBox, layerIndex, timeline.totalFrames, offsetX, offsetY)
       layers.push(layer)
       layerIndex++
     }

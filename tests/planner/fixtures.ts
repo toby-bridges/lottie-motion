@@ -16,9 +16,12 @@ export const fixture3NodeChain = {
   } as Structure,
   expectedTimeline: {
     fps: 30,
-    width: 1920,
-    height: 1080,
+    // bbox [0,0]..[340,50] (maxBoxDim 100 → padding 40); canvas = bbox + 2·40
+    width: 420,
+    height: 130,
     totalFrames: 72,
+    offsetX: 40,
+    offsetY: 40,
     events: [
       { kind: 'reveal' as const, target: 'A', startF: 0, endF: 12, x: 0, y: 0, w: 100, h: 50, label: 'Node A' },
       { kind: 'reveal' as const, target: 'B', startF: 18, endF: 30, x: 120, y: 0, w: 100, h: 50, label: 'Node B' },
@@ -48,9 +51,12 @@ export const fixtureDiamondDAG = {
   } as Structure,
   expectedTimeline: {
     fps: 30,
-    width: 1920,
-    height: 1080,
+    // bbox [0,0]..[280,240] (maxBoxDim 80 → padding 40); canvas = bbox + 2·40
+    width: 360,
+    height: 320,
     totalFrames: 90,
+    offsetX: 40,
+    offsetY: 40,
     events: [
       { kind: 'reveal' as const, target: 'A', startF: 0, endF: 12, x: 100, y: 0, w: 80, h: 40, label: 'Root' },
       { kind: 'reveal' as const, target: 'B', startF: 18, endF: 30, x: 0, y: 100, w: 80, h: 40, label: 'Left' },
@@ -81,9 +87,12 @@ export const fixtureCyclicGraph = {
   } as Structure,
   expectedTimeline: {
     fps: 30,
-    width: 1920,
-    height: 1080,
+    // bbox [0,0]..[160,160] (maxBoxDim 60 → padding 40); canvas = bbox + 2·40
+    width: 240,
+    height: 240,
     totalFrames: 72,
+    offsetX: 40,
+    offsetY: 40,
     events: [
       { kind: 'reveal' as const, target: 'A', startF: 0, endF: 12, x: 0, y: 0, w: 60, h: 60, label: 'Node A' },
       { kind: 'reveal' as const, target: 'B', startF: 18, endF: 30, x: 100, y: 0, w: 60, h: 60, label: 'Node B' },
