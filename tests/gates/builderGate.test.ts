@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { builderGate } from '../../src/gates/builderGate.js';
 import { TimelineIR, TimelineEvent } from '../../src/types/timeline.js';
 import { Structure, Vertex } from '../../src/types/structure.js';
-import { fixtureCyclicGraph } from '../planner/fixtures.js';
+import { fixtureCyclicGraph, fixture3NodeChain, fixtureDiamondDAG } from '../planner/fixtures.js';
 import { plan } from '../../src/planner/plan.js';
 
 describe('builderGate', () => {
@@ -16,7 +16,8 @@ describe('builderGate', () => {
 
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
-        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 }
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'highlight', target: 'n2', startF: 27, endF: 39 }
       ];
 
       const timeline: TimelineIR = {
@@ -65,7 +66,8 @@ describe('builderGate', () => {
       const structure: Structure = { vertices, edges: [] };
 
       const events: TimelineEvent[] = [
-        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 }
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'highlight', target: 'n1', startF: 12, endF: 24 }
       ];
 
       const timeline: TimelineIR = {
@@ -117,7 +119,8 @@ describe('builderGate', () => {
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
         { kind: 'reveal', target: 'n2', startF: 13, endF: 14, x: 100, y: 150, w: 60, h: 40 },
-        { kind: 'flow', target: 'e1', startF: 15, endF: 27, from: 'n1', to: 'n2' } // duration > 0
+        { kind: 'flow', target: 'e1', startF: 15, endF: 27, from: 'n1', to: 'n2' }, // duration > 0
+        { kind: 'highlight', target: 'n2', startF: 27, endF: 39 }
       ];
 
       const timeline: TimelineIR = {
@@ -166,7 +169,8 @@ describe('builderGate', () => {
       const structure: Structure = { vertices, edges: [] };
 
       const events: TimelineEvent[] = [
-        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 }
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'highlight', target: 'n1', startF: 12, endF: 24 }
       ];
 
       const timeline: TimelineIR = {
@@ -240,7 +244,8 @@ describe('builderGate', () => {
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
         { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
-        { kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n1', to: 'n2' } // after both
+        { kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n1', to: 'n2' }, // after both
+        { kind: 'highlight', target: 'n2', startF: 40, endF: 52 }
       ];
 
       const timeline: TimelineIR = {
@@ -318,7 +323,8 @@ describe('builderGate', () => {
 
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
-        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 }
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'highlight', target: 'n2', startF: 27, endF: 39 }
       ];
 
       const timeline: TimelineIR = {
@@ -375,7 +381,10 @@ describe('builderGate', () => {
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
         { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
-        { kind: 'reveal', target: 'n3', startF: 30, endF: 42, x: 200, y: 280, w: 70, h: 50 }
+        { kind: 'reveal', target: 'n3', startF: 30, endF: 42, x: 200, y: 280, w: 70, h: 50 },
+        { kind: 'flow', target: 'e1', startF: 42, endF: 54, from: 'n1', to: 'n2' },
+        { kind: 'flow', target: 'e2', startF: 54, endF: 66, from: 'n2', to: 'n3' },
+        { kind: 'highlight', target: 'n3', startF: 66, endF: 78 }
       ];
 
       const timeline: TimelineIR = {
@@ -441,7 +450,8 @@ describe('builderGate', () => {
 
       const events: TimelineEvent[] = [
         { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
-        { kind: 'flow', target: 'e1', startF: 12, endF: 24, from: 'n1', to: 'n1' }
+        { kind: 'flow', target: 'e1', startF: 12, endF: 24, from: 'n1', to: 'n1' },
+        { kind: 'highlight', target: 'n1', startF: 24, endF: 36 }
       ];
 
       const timeline: TimelineIR = {
@@ -570,7 +580,8 @@ describe('builderGate', () => {
         { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
         { kind: 'reveal', target: 'n3', startF: 30, endF: 42, x: 200, y: 280, w: 70, h: 50 },
         { kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n1', to: 'n2' },
-        { kind: 'flow', target: 'e2', startF: 43, endF: 55, from: 'n2', to: 'n3' }
+        { kind: 'flow', target: 'e2', startF: 43, endF: 55, from: 'n2', to: 'n3' },
+        { kind: 'highlight', target: 'n3', startF: 55, endF: 67 }
       ];
 
       const timeline: TimelineIR = {
@@ -584,6 +595,203 @@ describe('builderGate', () => {
       const result = builderGate(timeline, structure);
       expect(result.pass).toBe(true);
       expect(result.failures).toHaveLength(0);
+    });
+  });
+
+  describe('edge-flow completeness invariant', () => {
+    it('fails when an edge has no flow event in the timeline', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'highlight', target: 'n2', startF: 27, endF: 39 }
+        // no flow event for e1 anywhere in the timeline
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('e1') && f.includes('no flow event'))).toBe(true);
+    });
+
+    it('fails and names every edge when all flow events are deleted from an otherwise valid timeline (regression: previously silent PASS)', () => {
+      // This reproduces the verified gap: deleting every flow event from a
+      // structurally valid timeline used to PASS. Structure has two edges;
+      // both must be named in the failures.
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 },
+        { id: 'n3', label: 'Node 3', x: 200, y: 280, w: 70, h: 50 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' },
+        { id: 'e2', source: 'n2', target: 'n3', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'reveal', target: 'n3', startF: 30, endF: 42, x: 200, y: 280, w: 70, h: 50 },
+        { kind: 'highlight', target: 'n3', startF: 42, endF: 54 }
+        // all flow events removed — e1 and e2 both have zero
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('e1') && f.includes('no flow event'))).toBe(true);
+      expect(result.failures.some(f => f.includes('e2') && f.includes('no flow event'))).toBe(true);
+    });
+
+    it('fails when an edge has more than one flow event (duplicate flow, regression: previously silent PASS)', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'flow', target: 'e1', startF: 27, endF: 39, from: 'n1', to: 'n2' },
+        { kind: 'flow', target: 'e1', startF: 40, endF: 52, from: 'n1', to: 'n2' }, // duplicate flow, same edge
+        { kind: 'highlight', target: 'n2', startF: 52, endF: 64 }
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('e1') && f.includes('expected exactly 1'))).toBe(true);
+    });
+  });
+
+  describe('highlight target-existence invariant', () => {
+    it('fails when a highlight event targets an id that is not a real vertex or edge', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 }
+      ];
+      const structure: Structure = { vertices, edges: [] };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'highlight', target: 'ghost', startF: 12, endF: 24 } // 'ghost' is not n1 or any edge id
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('ghost') && f.includes('does not reference'))).toBe(true);
+    });
+
+    it('passes when a highlight event targets a real edge id (not only vertex ids are valid targets)', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const edges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'edge' }
+      ];
+      const structure: Structure = { vertices, edges };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        { kind: 'flow', target: 'e1', startF: 27, endF: 39, from: 'n1', to: 'n2' },
+        { kind: 'highlight', target: 'e1', startF: 39, endF: 51 } // highlight targets the EDGE
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+  });
+
+  describe('closing-highlight presence invariant', () => {
+    it('fails when the timeline has no highlight event at all', () => {
+      const vertices: Vertex[] = [
+        { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+        { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+      ];
+      const structure: Structure = { vertices, edges: [] };
+
+      const events: TimelineEvent[] = [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 }
+        // no highlight event anywhere — the design promise ("every valid input
+        // gets a closing highlight") is violated
+      ];
+
+      const timeline: TimelineIR = {
+        fps: 30,
+        width: 800,
+        height: 600,
+        totalFrames: 100,
+        events
+      };
+
+      const result = builderGate(timeline, structure);
+      expect(result.pass).toBe(false);
+      expect(result.failures.some(f => f.includes('highlight'))).toBe(true);
+    });
+
+    it('passes for real planner output: every edge has exactly one flow and a closing highlight exists (3-node chain, diamond DAG)', () => {
+      const tlChain = plan(fixture3NodeChain.input);
+      const chainResult = builderGate(tlChain, fixture3NodeChain.input);
+      expect(chainResult.pass).toBe(true);
+      expect(chainResult.failures).toHaveLength(0);
+
+      const tlDiamond = plan(fixtureDiamondDAG.input);
+      const diamondResult = builderGate(tlDiamond, fixtureDiamondDAG.input);
+      expect(diamondResult.pass).toBe(true);
+      expect(diamondResult.failures).toHaveLength(0);
     });
   });
 });

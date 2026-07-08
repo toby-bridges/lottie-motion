@@ -32,7 +32,8 @@ describe('Three-gate integration', () => {
           { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
           { kind: 'reveal', target: 'n3', startF: 30, endF: 42, x: 200, y: 280, w: 70, h: 50 },
           { kind: 'flow', target: 'e1', startF: 45, endF: 60, from: 'n1', to: 'n2' },
-          { kind: 'flow', target: 'e2', startF: 63, endF: 78, from: 'n2', to: 'n3' }
+          { kind: 'flow', target: 'e2', startF: 63, endF: 78, from: 'n2', to: 'n3' },
+          { kind: 'highlight', target: 'n3', startF: 78, endF: 90 }
         ]
       };
 
