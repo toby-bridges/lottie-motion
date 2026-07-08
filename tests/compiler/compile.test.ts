@@ -73,6 +73,39 @@ describe('reveal event orchestration', () => {
     expect(layer.shapes[0].it.some((s: any) => s.ty === 'rc')).toBe(true) // has rect
   })
 
+  it('places the reveal layer transform at the box CENTER, not the top-left corner', () => {
+    // Input geometry convention is x/y = top-left corner (mxGraph/draw.io), but
+    // the 'rc' rect shape is centre-anchored (p:[0,0] = its own centre). The
+    // layer transform must translate to the box's centre — x + w/2, y + h/2 —
+    // so the rendered rect's centre lands on the input box, matching the same
+    // centre convention buildFlowLayer already uses for edge endpoints.
+    const timeline: TimelineIR = {
+      fps: 30,
+      width: 200,
+      height: 200,
+      totalFrames: 60,
+      events: [
+        {
+          kind: 'reveal',
+          target: 'node-1',
+          startF: 0,
+          endF: 30,
+          x: 50,
+          y: 100,
+          w: 120,
+          h: 60,
+        },
+      ],
+    }
+
+    const result = compile(timeline)
+
+    const layer = result.layers[0]
+    // center: [50 + 120/2, 100 + 60/2, 0] = [110, 130, 0]
+    expect(layer.ks.p.a).toBe(0) // static (not animated)
+    expect(layer.ks.p.k).toEqual([110, 130, 0])
+  })
+
   it('translates multiple reveal events to multiple layers with auto-incrementing indices', () => {
     const timeline: TimelineIR = {
       fps: 30,

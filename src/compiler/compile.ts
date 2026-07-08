@@ -127,7 +127,13 @@ function buildRevealLayer(
   const transform = el('ks', T.element.layerTransform, ob('layer-transform-children' as ObjectTitle, [
     opacity,
     staticVal('r', 'rotation-clockwise', 0),
-    staticMulti('p', 'translation', 'animated-position-static', [event.x, event.y, 0]),
+    // rc rects are centre-anchored (p:[0,0] = box centre), but event.x/y is the
+    // TOP-LEFT corner (mxGraph/draw.io convention — see buildFlowLayer below,
+    // which already derives edge endpoints as x+w/2, y+h/2). Translating the
+    // layer to the raw x/y put the box's CENTRE at the input's top-left corner,
+    // shifting every node by (w/2, h/2) and leaving flow edges pointing at empty
+    // space just outside the (mis-)rendered box.
+    staticMulti('p', 'translation', 'animated-position-static', [event.x + event.w / 2, event.y + event.h / 2, 0]),
     staticMulti('a', 'anchor-point', 'animated-position-static', [0, 0, 0]),
     scale,
   ]))
