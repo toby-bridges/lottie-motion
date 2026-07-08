@@ -30,6 +30,13 @@ export interface TimelineEventFlow {
   endF: number;
   from: string;
   to: string;
+  /**
+   * Edge label, copied verbatim from the input edge (the flow sibling of
+   * reveal.label). Optional so hand-built test timelines need not supply it; the
+   * planner always populates it. The compiler renders a glyph layer only when it
+   * is non-empty (whitespace-trimmed).
+   */
+  label?: string;
 }
 
 export interface TimelineEventHighlight {

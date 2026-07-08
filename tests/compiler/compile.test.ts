@@ -277,3 +277,72 @@ describe('flow event orchestration', () => {
     expect(flowLayer.op).toBe(120)
   })
 })
+
+describe('edge label glyph layer', () => {
+  const twoNodes = [
+    { kind: 'reveal' as const, target: 'node-1', startF: 0, endF: 30, x: 50, y: 100, w: 120, h: 60 },
+    { kind: 'reveal' as const, target: 'node-2', startF: 30, endF: 60, x: 200, y: 300, w: 100, h: 50 },
+  ]
+  const base = (flow: TimelineIR['events'][number]): TimelineIR => ({
+    fps: 30,
+    width: 400,
+    height: 400,
+    totalFrames: 120,
+    events: [...twoNodes, flow],
+  })
+
+  it('adds one nm="el" layer for a labelled edge, appended after the flow layer', () => {
+    const result = compile(
+      base({ kind: 'flow', target: 'edge-1', startF: 60, endF: 90, from: 'node-1', to: 'node-2', label: 'calls' })
+    )
+
+    // 2 reveals + 1 flow + 1 edge-label glyph layer
+    expect(result.layers.length).toBe(4)
+    const elLayers = result.layers.filter((l: any) => l.nm === 'el')
+    expect(elLayers.length).toBe(1)
+    // appended at the array end, AFTER the flow layer (nm 'e')
+    expect(result.layers[result.layers.length - 1].nm).toBe('el')
+
+    const el = elLayers[0]
+    // opacity fades in over the SAME window as its flow event [60, 90]
+    expect(el.ks.o.a).toBe(1)
+    expect(el.ks.o.k.length).toBe(2)
+    expect(el.ks.o.k[0].t).toBe(60)
+    expect(el.ks.o.k[0].s).toEqual([0])
+    expect(el.ks.o.k[1].t).toBe(90)
+    expect(el.ks.o.k[1].s).toEqual([100])
+    // required i/o easing handles (lottie-web renders nothing without them)
+    expect(el.ks.o.k[0].i).toBeDefined()
+    expect(el.ks.o.k[0].o).toBeDefined()
+
+    // centred 8px above the edge midpoint: node-1 centre (110,130),
+    // node-2 centre (250,325) → mid (180, 227.5), lifted to y − 8.
+    expect(el.ks.p.k).toEqual([180, 219.5, 0])
+
+    // glyphs: a group of CLOSED bezier paths with a dark-grey fill
+    const group = el.shapes[0]
+    expect(group.ty).toBe('gr')
+    const paths = group.it.filter((s: any) => s.ty === 'sh')
+    expect(paths.length).toBeGreaterThan(0)
+    for (const p of paths) {
+      expect(p.ks.k.c).toBe(true) // closed contour
+    }
+    const fill = group.it.find((s: any) => s.ty === 'fl')
+    expect(fill.c.k).toEqual([0.2, 0.2, 0.2, 1]) // dark grey, readable on the blank canvas
+  })
+
+  it('emits no el layer when the edge label is empty, whitespace, or missing', () => {
+    for (const label of ['', '   ', undefined]) {
+      const result = compile(
+        base({ kind: 'flow', target: 'edge-1', startF: 60, endF: 90, from: 'node-1', to: 'node-2', label })
+      )
+      expect(result.layers.length).toBe(3) // 2 reveals + 1 flow, no edge label
+      expect(result.layers.some((l: any) => l.nm === 'el')).toBe(false)
+    }
+  })
+
+  it('is deterministic: same labelled timeline → identical Lottie JSON', () => {
+    const tl = base({ kind: 'flow', target: 'edge-1', startF: 60, endF: 90, from: 'node-1', to: 'node-2', label: 'calls' })
+    expect(compile(tl)).toEqual(compile(tl))
+  })
+})

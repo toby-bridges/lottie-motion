@@ -698,6 +698,55 @@ describe('builderGate', () => {
     });
   });
 
+  describe('flow label-freeze invariant', () => {
+    const vertices: Vertex[] = [
+      { id: 'n1', label: 'Node 1', x: 10, y: 20, w: 50, h: 30 },
+      { id: 'n2', label: 'Node 2', x: 100, y: 150, w: 60, h: 40 }
+    ];
+    const edges = [{ id: 'e1', source: 'n1', target: 'n2', label: 'calls' }];
+    const structure: Structure = { vertices, edges };
+
+    const wrap = (flow: TimelineEvent): TimelineIR => ({
+      fps: 30,
+      width: 800,
+      height: 600,
+      totalFrames: 100,
+      events: [
+        { kind: 'reveal', target: 'n1', startF: 0, endF: 12, x: 10, y: 20, w: 50, h: 30 },
+        { kind: 'reveal', target: 'n2', startF: 15, endF: 27, x: 100, y: 150, w: 60, h: 40 },
+        flow,
+        { kind: 'highlight', target: 'n2', startF: 40, endF: 52 }
+      ]
+    });
+
+    it('passes when the flow label matches the edge label verbatim', () => {
+      const result = builderGate(
+        wrap({ kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n1', to: 'n2', label: 'calls' }),
+        structure
+      );
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+
+    it('fails when the flow label is tampered to differ from the edge label', () => {
+      const result = builderGate(
+        wrap({ kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n1', to: 'n2', label: 'TAMPERED' }),
+        structure
+      );
+      expect(result.pass).toBe(false);
+      expect(result.failures.some((f) => f.includes('e1') && f.includes('label mismatch'))).toBe(true);
+    });
+
+    it('does not check the label when the flow omits it (undefined)', () => {
+      const result = builderGate(
+        wrap({ kind: 'flow', target: 'e1', startF: 28, endF: 40, from: 'n1', to: 'n2' }),
+        structure
+      );
+      expect(result.pass).toBe(true);
+      expect(result.failures).toHaveLength(0);
+    });
+  });
+
   describe('highlight target-existence invariant', () => {
     it('fails when a highlight event targets an id that is not a real vertex or edge', () => {
       const vertices: Vertex[] = [

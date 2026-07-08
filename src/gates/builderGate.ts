@@ -168,6 +168,12 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
       } else if (edge.source !== event.from || edge.target !== event.to) {
         failures.push(`Flow '${event.target}' endpoints (${event.from}->${event.to}) do not match edge (${edge.source}->${edge.target})`);
       }
+
+      // Label freeze (only when the flow carries a label): must match the edge's
+      // label verbatim — the textual sibling of the reveal spatial/label freeze.
+      if (edge && event.label !== undefined && event.label !== edge.label) {
+        failures.push(`Flow '${event.target}': label mismatch (event="${event.label}", edge="${edge.label}")`);
+      }
     }
   }
 

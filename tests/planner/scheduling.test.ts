@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scheduleEvents } from '../../src/planner/scheduling.js';
-import { fixture3NodeChain } from './fixtures.js';
+import { fixture3NodeChain, fixtureDiamondDAG } from './fixtures.js';
 
 describe('planner/scheduling', () => {
   it('should generate reveal events with default revealDur=12, stagger=6', () => {
@@ -66,7 +66,8 @@ describe('planner/scheduling', () => {
       startF: 30,
       endF: 42,
       from: 'A',
-      to: 'B'
+      to: 'B',
+      label: 'flow'
     });
 
     expect(flows[1]).toEqual({
@@ -75,8 +76,30 @@ describe('planner/scheduling', () => {
       startF: 48,
       endF: 60,
       from: 'B',
-      to: 'C'
+      to: 'C',
+      label: 'flow'
     });
+  });
+
+  it('should copy each edge.label verbatim into its flow event', () => {
+    // Distinct labels per edge (diamond DAG: left/right/join/join) prove the
+    // copy is per-edge and verbatim, not a shared constant.
+    const ordered = ['A', 'B', 'C', 'D'];
+    const events = scheduleEvents(fixtureDiamondDAG.input, ordered, {
+      revealDur: 12,
+      stagger: 6
+    });
+
+    const labelByTarget = new Map(
+      events
+        .filter((e): e is Extract<typeof e, { kind: 'flow' }> => e.kind === 'flow')
+        .map((e) => [e.target, e.label])
+    );
+
+    expect(labelByTarget.get('A-B')).toBe('left');
+    expect(labelByTarget.get('A-C')).toBe('right');
+    expect(labelByTarget.get('B-D')).toBe('join');
+    expect(labelByTarget.get('C-D')).toBe('join');
   });
 
   it('should emit events sorted by startF', () => {

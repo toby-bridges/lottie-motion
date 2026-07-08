@@ -77,7 +77,8 @@ export function scheduleEvents(
       startF: flowStart,
       endF: flowEnd,
       from: source,
-      to: target
+      to: target,
+      label: edge.label // copied verbatim (edge-label freeze sibling of reveal.label)
     });
   }
 

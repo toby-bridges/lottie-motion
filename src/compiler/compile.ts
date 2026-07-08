@@ -67,7 +67,12 @@ function buildGlyphPath(contour: GlyphContour, ind: number) {
  * and any highlight scale pulse, and is centred on the rect automatically
  * (contours are centred on the origin, the rect's centre in layer space).
  */
-function buildGlyphGroup(label: string, w: number, h: number) {
+function buildGlyphGroup(
+  label: string,
+  w: number,
+  h: number,
+  fillColor: [number, number, number, number] = [1, 1, 1, 1]
+) {
   const { contours } = labelToContours(label, { w, h })
   if (contours.length === 0) {
     return null
@@ -79,7 +84,7 @@ function buildGlyphGroup(label: string, w: number, h: number) {
     at('ty', T.string.shapeType, pt('fl')),
     el('c', 'shape-fill-color', ob('animated-color-static', [
       at('a', T.intBoolean.animated, pt(0)),
-      cl('k', 'color-rgba', ar('static-values-children', [pt(1), pt(1), pt(1), pt(1)])),
+      cl('k', 'color-rgba', ar('static-values-children', fillColor.map((ch) => pt(ch)))),
     ])),
     staticVal('o', 'shape-fill-opacity', 100),
   ])
@@ -315,6 +320,93 @@ function buildFlowLayer(
   ])
 }
 
+/**
+ * buildEdgeLabelLayer: an edge's label → its OWN glyph shape layer, placed just
+ * above the edge midpoint and faded in over the flow window. Returns null when
+ * the label is empty/whitespace (no layer emitted).
+ *
+ * Why a standalone layer and not a group inside buildFlowLayer: the flow layer's
+ * trim-path animates over the SAME frame window and would clip any glyph sharing
+ * its group. A separate layer keeps the text intact while the line draws itself.
+ *
+ * Synthetic fit box (deterministic — labelToContours fits the glyphs into it):
+ *   w = max(60, 0.5 · edgeLength), h = 24
+ * where edgeLength is the Euclidean distance between the two node-box centres.
+ * Determinism holds because Math.hypot is IEEE-deterministic and labelToContours
+ * rounds every emitted coordinate to 3 decimals.
+ *
+ * Position: the glyph group is origin-centred (see labels.ts), so the layer
+ * translation places its centre 8px ABOVE (smaller y) the edge midpoint — clear
+ * of the 4px stroke. Fill is dark grey [0.2,0.2,0.2,1]: edge labels sit on the
+ * blank canvas (unlike node labels, which are white inside the dark box).
+ */
+function buildEdgeLabelLayer(
+  event: TimelineEventFlow,
+  fromBox: { x: number; y: number; w: number; h: number },
+  toBox: { x: number; y: number; w: number; h: number },
+  layerIndex: number,
+  totalFrames: number,
+  offsetX: number,
+  offsetY: number
+): any | null {
+  const label = (event.label ?? '').trim()
+  if (label === '') {
+    return null
+  }
+
+  // Node-box centres, shifted by the same canvas offset as every other layer.
+  const fromC: [number, number] = [fromBox.x + fromBox.w / 2 + offsetX, fromBox.y + fromBox.h / 2 + offsetY]
+  const toC: [number, number] = [toBox.x + toBox.w / 2 + offsetX, toBox.y + toBox.h / 2 + offsetY]
+
+  const edgeLength = Math.hypot(toC[0] - fromC[0], toC[1] - fromC[1])
+  const boxW = Math.max(60, 0.5 * edgeLength)
+  const boxH = 24
+
+  const glyphGroup = buildGlyphGroup(label, boxW, boxH, [0.2, 0.2, 0.2, 1])
+  if (!glyphGroup) {
+    // Defensive: a non-empty trimmed label with a font that yields no contours.
+    return null
+  }
+
+  const midX = (fromC[0] + toC[0]) / 2
+  const midY = (fromC[1] + toC[1]) / 2
+
+  // Fade in over the flow window [startF, endF] — mirrors buildRevealLayer's
+  // opacity (keyframe() carries the required i/o easing handles).
+  const opacity = el('o', T.element.transformOpacity, ob(T.object.animatedValue, [
+    at('a', T.intBoolean.animated, pt(1)),
+    cl('k', T.collection.keyframeList, ar(T.array.keyframeListChildren, [
+      keyframe(event.startF, 0),
+      keyframe(event.endF, 100),
+    ])),
+  ]))
+
+  const transform = el('ks', T.element.layerTransform, ob('layer-transform-children' as ObjectTitle, [
+    opacity,
+    staticVal('r', 'rotation-clockwise', 0),
+    staticMulti('p', 'translation', 'animated-position-static', [midX, midY - 8, 0]),
+    staticMulti('a', 'anchor-point', 'animated-position-static', [0, 0, 0]),
+    staticMulti('s', 'layer-transform-scale', 'animated-multidimensional-static', [100, 100, 100]),
+  ]))
+
+  const shapes = cl('shapes', T.collection.shapeList, ar(T.array.shapeListChildren, [glyphGroup]))
+
+  return ob(T.object.layerShape, [
+    at('ddd', T.intBoolean.layerThreedimensional, pt(0)),
+    at('ind', T.number.compositionIndex, pt(layerIndex)),
+    at('ty', T.number.layerType, pt(4)),
+    at('nm', 'name', pt('el')),
+    at('sr', 'time-stretch', pt(1)),
+    transform,
+    at('ao', 'auto-orient', pt(0)),
+    shapes,
+    at('ip', T.number.inPoint, pt(0)),
+    at('op', T.number.outPoint, pt(totalFrames)),
+    at('st', 'start-time', pt(0)),
+    at('bm', 'blend-mode', pt(0)),
+  ])
+}
+
 export function compile(timeline: TimelineIR): LottieJSON {
   const layers: any[] = []
   let layerIndex = 1
@@ -362,6 +454,30 @@ export function compile(timeline: TimelineIR): LottieJSON {
       const layer = buildFlowLayer(event, fromBox, toBox, layerIndex, timeline.totalFrames, offsetX, offsetY)
       layers.push(layer)
       layerIndex++
+    }
+  })
+
+  // Walk timeline events; append edge-label glyph layers AFTER all flow layers
+  // (array end). Each labelled edge adds one 'el' layer; empty labels add none.
+  timeline.events.forEach(event => {
+    if (event.kind === 'flow') {
+      const fromEvent = revealMap.get(event.from)
+      const toEvent = revealMap.get(event.to)
+
+      // Unreachable in practice: the flow loop above already threw if an
+      // endpoint was missing. Guard anyway so this pass never dereferences null.
+      if (!fromEvent || !toEvent) {
+        return
+      }
+
+      const fromBox = { x: fromEvent.x, y: fromEvent.y, w: fromEvent.w, h: fromEvent.h }
+      const toBox = { x: toEvent.x, y: toEvent.y, w: toEvent.w, h: toEvent.h }
+
+      const labelLayer = buildEdgeLabelLayer(event, fromBox, toBox, layerIndex, timeline.totalFrames, offsetX, offsetY)
+      if (labelLayer) {
+        layers.push(labelLayer)
+        layerIndex++
+      }
     }
   })
 
