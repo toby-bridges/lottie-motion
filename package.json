@@ -18,12 +18,24 @@
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toby-bridges/lottie-motion.git"
+  },
+  "bugs": {
+    "url": "https://github.com/toby-bridges/lottie-motion/issues"
+  },
+  "homepage": "https://github.com/toby-bridges/lottie-motion#readme",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsc && npm run copy:assets",
     "copy:assets": "node -e \"const f=require('fs');f.mkdirSync('dist/gates/schema',{recursive:true});f.copyFileSync('src/gates/schema/lottie.schema.json','dist/gates/schema/lottie.schema.json');f.mkdirSync('dist/compiler/fonts',{recursive:true});for(const n of f.readdirSync('src/compiler/fonts'))f.copyFileSync('src/compiler/fonts/'+n,'dist/compiler/fonts/'+n)\"",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "dependencies": {
     "@lottiefiles/last": "1.15.0",
