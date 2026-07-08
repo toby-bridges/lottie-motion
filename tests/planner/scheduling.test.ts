@@ -7,8 +7,7 @@ describe('planner/scheduling', () => {
     const ordered = ['A', 'B', 'C'];
     const events = scheduleEvents(fixture3NodeChain.input, ordered, {
       revealDur: 12,
-      stagger: 6,
-      fps: 30
+      stagger: 6
     });
 
     const reveals = events.filter((e) => e.kind === 'reveal');
@@ -55,8 +54,7 @@ describe('planner/scheduling', () => {
     const ordered = ['A', 'B', 'C'];
     const events = scheduleEvents(fixture3NodeChain.input, ordered, {
       revealDur: 12,
-      stagger: 6,
-      fps: 30
+      stagger: 6
     });
 
     const flows = events.filter((e) => e.kind === 'flow');
@@ -85,8 +83,7 @@ describe('planner/scheduling', () => {
     const ordered = ['A', 'B', 'C'];
     const events = scheduleEvents(fixture3NodeChain.input, ordered, {
       revealDur: 12,
-      stagger: 6,
-      fps: 30
+      stagger: 6
     });
 
     for (let i = 1; i < events.length; i++) {

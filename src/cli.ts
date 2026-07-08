@@ -34,10 +34,8 @@ async function main(): Promise<void> {
     // Plan
     const timeline = plan(structure);
 
-    // Compile
-    const lottie = compile(timeline);
-
-    // Builder gate (cheapest)
+    // Builder gate (cheapest) — run before compiling so a failing gate
+    // short-circuits without spending a wasted compile pass.
     if (shouldVerify) {
       const builderResult = builderGate(timeline, structure);
       console.log(`Builder gate: ${builderResult.pass ? 'PASS' : 'FAIL'}`);
@@ -48,6 +46,9 @@ async function main(): Promise<void> {
         process.exit(1);
       }
     }
+
+    // Compile
+    const lottie = compile(timeline);
 
     // Compiler gate
     if (shouldVerify) {

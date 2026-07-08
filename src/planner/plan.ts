@@ -29,8 +29,7 @@ export function plan(
   // Step 3: Schedule reveal and flow events
   const events = scheduleEvents(structure, orderedVertexIds, {
     revealDur,
-    stagger,
-    fps
+    stagger
   });
 
   // Step 4: Compute total frames
