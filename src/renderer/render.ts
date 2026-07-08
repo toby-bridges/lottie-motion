@@ -87,6 +87,19 @@ async function ensureDom(): Promise<void> {
   const dom = new JSDOM('<!DOCTYPE html><body></body>', { pretendToBeVisual: true });
   (globalThis as unknown as { window: unknown }).window = dom.window;
   (globalThis as unknown as { document: unknown }).document = dom.window.document;
+  // lottie-web's UMD bundle only exports its API when both `document` AND
+  // `navigator` are defined at import time. Node 21+ ships a built-in global
+  // `navigator`, but Node 20 does not — without this shim the bundle
+  // short-circuits and exports an empty object ("loadAnimation is not a
+  // function"). Define it from jsdom only when absent; the built-in global is
+  // a read-only getter, hence Object.defineProperty. (Ported from PR #8's
+  // fix, rebased onto this lazy initializer.)
+  if (typeof (globalThis as { navigator?: unknown }).navigator === 'undefined') {
+    Object.defineProperty(globalThis, 'navigator', {
+      value: dom.window.navigator,
+      configurable: true,
+    });
+  }
   _domReady = true;
 }
 
