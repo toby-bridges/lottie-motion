@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 
 describe('packaging', () => {
@@ -46,6 +46,56 @@ describe('packaging', () => {
       expect(result).toBeDefined();
       expect(result.pass).toBe(true);
       expect(result.failures).toHaveLength(0);
+    });
+
+    it('importing the library root is side-effect free (no global DOM, no jsdom/canvas/lottie-web loaded)', () => {
+      // Run in a FRESH Node process so the assertion is not polluted by other
+      // tests that legitimately create a JSDOM. `node -e` runs as CommonJS, so
+      // require.cache is available to detect whether the heavy/native deps were
+      // pulled in at import time. jsdom, canvas and lottie-web are all CJS, so a
+      // load would show up in require.cache. execFileSync avoids shell quoting.
+      const script = [
+        "const names = ['jsdom', 'canvas', 'lottie-web'];",
+        "import('./dist/index.js').then((m) => {",
+        "  const leaked = Object.keys(require.cache).filter((p) =>",
+        "    names.some((n) => p.includes('/node_modules/' + n + '/')));",
+        '  const out = {',
+        '    window: typeof globalThis.window,',
+        '    document: typeof globalThis.document,',
+        '    leaked,',
+        '    plan: typeof m.plan,',
+        '    compile: typeof m.compile,',
+        '    validateStructure: typeof m.validateStructure,',
+        '    parseMxGraph: typeof m.parseMxGraph,',
+        '    builderGate: typeof m.builderGate,',
+        '    compilerGate: typeof m.compilerGate,',
+        '    render: typeof m.render,',
+        '    sampleFrames: typeof m.sampleFrames,',
+        '  };',
+        "  process.stdout.write('RESULT:' + JSON.stringify(out));",
+        "}).catch((e) => { process.stdout.write('THROWN:' + (e && e.message)); process.exit(7); });",
+      ].join('\n');
+
+      const raw = execFileSync('node', ['-e', script], { encoding: 'utf-8' });
+      const marker = raw.indexOf('RESULT:');
+      expect(marker, `child did not report RESULT; got: ${raw}`).toBeGreaterThanOrEqual(0);
+      const res = JSON.parse(raw.slice(marker + 'RESULT:'.length));
+
+      // Criterion A: no global DOM stomping on import.
+      expect(res.window).toBe('undefined');
+      expect(res.document).toBe('undefined');
+      // Criterion A: none of the heavy/native/optional deps loaded at import.
+      expect(res.leaked).toEqual([]);
+      // Criterion B: pure functionality is reachable without render deps.
+      expect(res.plan).toBe('function');
+      expect(res.compile).toBe('function');
+      expect(res.validateStructure).toBe('function');
+      expect(res.parseMxGraph).toBe('function');
+      expect(res.builderGate).toBe('function');
+      expect(res.compilerGate).toBe('function');
+      // render/sampleFrames stay exported — the re-export is side-effect free.
+      expect(res.render).toBe('function');
+      expect(res.sampleFrames).toBe('function');
     });
   });
 

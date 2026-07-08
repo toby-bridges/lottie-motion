@@ -1,12 +1,11 @@
 // Headless Lottie rendering — node-canvas + jsdom + lottie-web canvas renderer.
-// See Task notes: DOM is created ONCE at module load and left in place; lottie-web
-// is imported dynamically AFTER window exists.
-import { JSDOM } from 'jsdom';
-import { createCanvas } from 'canvas';
-
-const _dom = new JSDOM('<!DOCTYPE html><body></body>', { pretendToBeVisual: true });
-(globalThis as unknown as { window: unknown }).window = _dom.window;
-(globalThis as unknown as { document: unknown }).document = _dom.window.document;
+//
+// IMPORTANT: this module has NO top-level side effects. Importing it (or the
+// library root) must not create a JSDOM, stomp globalThis.window/document, or
+// pull in the native `canvas` / `jsdom` / `lottie-web` modules. All of that is
+// deferred to the FIRST call to render() via lazy dynamic imports (same
+// convention as getLottie() below). `sampleFrames` and the `Frame` type stay at
+// module top level because they are pure and dependency-free.
 
 export interface Frame {
   width: number;
@@ -26,14 +25,42 @@ export function sampleFrames(totalFrames: number): number[] {
   return Array.from(new Set(samples)).sort((a, b) => a - b);
 }
 
+// --- lazy dependency initialization (runs at most once, on first render()) ---
+
+let _domReady = false;
+async function ensureDom(): Promise<void> {
+  if (_domReady) return;
+  // lottie-web references window/document at import time, so the DOM shim must
+  // be installed BEFORE getLottie() runs.
+  const { JSDOM } = await import('jsdom');
+  const dom = new JSDOM('<!DOCTYPE html><body></body>', { pretendToBeVisual: true });
+  (globalThis as unknown as { window: unknown }).window = dom.window;
+  (globalThis as unknown as { document: unknown }).document = dom.window.document;
+  _domReady = true;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _lottie: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getLottie(): Promise<any> {
   if (!_lottie) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mod: any = await import('lottie-web');
     _lottie = mod.default || mod;
   }
   return _lottie;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _createCanvas: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getCreateCanvas(): Promise<any> {
+  if (!_createCanvas) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import('canvas');
+    _createCanvas = mod.createCanvas;
+  }
+  return _createCanvas;
 }
 
 export async function render(
@@ -46,7 +73,29 @@ export async function render(
     throw new Error(`render: invalid canvas dimensions w=${lottie.w} h=${lottie.h}`);
   }
 
-  const lottieWeb = await getLottie();
+  // Acquire the optional rendering dependencies lazily. Only this acquisition is
+  // wrapped so that genuine rendering errors (below) still surface unchanged.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let lottieWeb: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let createCanvas: (width: number, height: number) => any;
+  try {
+    // Order matters: install the DOM shim first (lottie-web reads window at
+    // import time), then acquire node-canvas (independent of the DOM), then
+    // lottie-web. Acquiring canvas before lottie-web means a missing native
+    // `canvas` fails with a clean ERR_MODULE_NOT_FOUND rather than a cryptic
+    // downstream error from lottie-web's import-time canvas probing.
+    await ensureDom();
+    createCanvas = await getCreateCanvas();
+    lottieWeb = await getLottie();
+  } catch (err) {
+    throw new Error(
+      `render() needs its optional rendering dependencies (canvas, lottie-web). ` +
+        `Install them with \`npm install lottie-motion --include=optional\`. ` +
+        `(underlying: ${(err as Error).message})`
+    );
+  }
+
   const canvasEl = createCanvas(width, height);
   const ctx = canvasEl.getContext('2d');
 
