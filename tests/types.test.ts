@@ -148,6 +148,15 @@ describe('validateStructure', () => {
     ).toThrow(/does not reference an existing vertex/);
   });
 
+  it('should reject self-loop edges (source === target)', () => {
+    expect(() =>
+      validateStructure({
+        vertices: [{ id: 'a', label: 'A', x: 0, y: 0, w: 50, h: 50 }],
+        edges: [{ id: 'e1', source: 'a', target: 'a', label: 'loop' }],
+      })
+    ).toThrow(/is a self-loop/);
+  });
+
   it('should reject duplicate vertex ids', () => {
     expect(() =>
       validateStructure({

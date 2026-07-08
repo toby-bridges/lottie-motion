@@ -134,6 +134,14 @@ export function validateStructure(input: unknown): Structure {
     if (!vertexIds.has(edge.target)) {
       throw new StructureError(`Edge "${edge.id}" target "${edge.target}" does not reference an existing vertex`);
     }
+
+    // Reject self-loops: source === target produces a zero-length degenerate
+    // edge path and makes the graph cyclic, silently triggering the
+    // visual-order fallback instead of topological ordering. v0.1 does not
+    // support this case, so fail loud at input validation time.
+    if (edge.source === edge.target) {
+      throw new StructureError(`Edge "${edge.id}" is a self-loop (source === target), which v0.1 does not support`);
+    }
   }
 
   return {

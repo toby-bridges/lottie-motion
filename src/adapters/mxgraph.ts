@@ -78,9 +78,14 @@ export function parseMxGraph(xml: string): Structure {
       const target = cell.getAttribute('target');
       const label = cell.getAttribute('value') || '';
 
-      if (id && source && target) {
-        edges.push({ id, source, target, label });
+      // Real edge cells must have id, source, and target; throw loudly if
+      // missing instead of silently dropping the edge (consistent with the
+      // "mxGraph vertex has no geometry" handling above).
+      if (!id || !source || !target) {
+        throw new Error(`mxGraph edge '${id}' is missing source or target`);
       }
+
+      edges.push({ id, source, target, label });
     }
   }
 
