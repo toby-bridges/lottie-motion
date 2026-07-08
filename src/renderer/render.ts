@@ -7,6 +7,8 @@
 // convention as getLottie() below). `sampleFrames` and the `Frame` type stay at
 // module top level because they are pure and dependency-free.
 
+import type { TimelineIR } from '../types/timeline.js';
+
 export interface Frame {
   width: number;
   height: number;
@@ -23,6 +25,55 @@ export function sampleFrames(totalFrames: number): number[] {
     totalFrames - 1,
   ];
   return Array.from(new Set(samples)).sort((a, b) => a - b);
+}
+
+/**
+ * eventSampleFrames: derive render sample frames from a timeline's events.
+ *
+ * The global sampleFrames() set ([0, n/4, n/2, 3n/4, n-1]) is event-blind: it
+ * can miss the exact frame where a reveal/flow finishes, so a mis-placed box or
+ * a dangling edge slips past a purely positional render gate. This adds one
+ * sample per reveal/flow event at min(endF, totalFrames-1) — the earliest
+ * renderable frame at/after the event completes, where its content should be
+ * (nearly) fully drawn.
+ *
+ * Contract:
+ *   - one candidate per reveal/flow event: min(endF, totalFrames-1); highlights
+ *     add no candidate (they carry no positional assertion);
+ *   - deduped + sorted;
+ *   - capped at 24 event-derived frames — when more events exist, downsample
+ *     uniformly across the sorted set (first and last always kept) so the gate's
+ *     render cost stays bounded;
+ *   - the global sampleFrames() set is ALWAYS unioned in, so has_motion and the
+ *     positional baseline are preserved even if events are capped away.
+ * Pure and dependency-free (TimelineIR is a type-only import), so it stays at
+ * module top level next to sampleFrames.
+ */
+export function eventSampleFrames(timeline: TimelineIR): number[] {
+  const n = timeline.totalFrames;
+  const global = sampleFrames(n);
+
+  const candidates: number[] = [];
+  for (const event of timeline.events) {
+    if (event.kind === 'reveal' || event.kind === 'flow') {
+      candidates.push(Math.min(event.endF, n - 1));
+    }
+  }
+
+  let eventFrames = Array.from(new Set(candidates)).sort((a, b) => a - b);
+
+  const CAP = 24;
+  if (eventFrames.length > CAP) {
+    const picked: number[] = [];
+    for (let i = 0; i < CAP; i++) {
+      // Spread CAP indices evenly across [0, len-1] inclusive (endpoints kept).
+      const idx = Math.round((i * (eventFrames.length - 1)) / (CAP - 1));
+      picked.push(eventFrames[idx]);
+    }
+    eventFrames = Array.from(new Set(picked)).sort((a, b) => a - b);
+  }
+
+  return Array.from(new Set([...global, ...eventFrames])).sort((a, b) => a - b);
 }
 
 // --- lazy dependency initialization (runs at most once, on first render()) ---
