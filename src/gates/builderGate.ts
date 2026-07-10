@@ -168,6 +168,12 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
       } else if (edge.source !== event.from || edge.target !== event.to) {
         failures.push(`Flow '${event.target}' endpoints (${event.from}->${event.to}) do not match edge (${edge.source}->${edge.target})`);
       }
+
+      // Label freeze (only when the flow carries a label): must match the edge's
+      // label verbatim — the textual sibling of the reveal spatial/label freeze.
+      if (edge && event.label !== undefined && event.label !== edge.label) {
+        failures.push(`Flow '${event.target}': label mismatch (event="${event.label}", edge="${edge.label}")`);
+      }
     }
   }
 
@@ -185,6 +191,46 @@ export function builderGate(timeline: TimelineIR, structure: Structure): GateRes
           failures.push(`Partial order violation: '${edge.source}' (source, startF=${sourceEvent.startF}) must be revealed before '${edge.target}' (target, startF=${targetEvent.startF})`);
         }
       }
+    }
+  }
+
+  // Invariant C: every structure edge must have exactly one flow event in the timeline.
+  // (Verified gap: deleting all flow events, or duplicating one edge's flow, previously
+  // passed. Counting only — never re-derive when the flow should occur.)
+  const flowCountByEdge = new Map<string, number>();
+  for (const event of timeline.events) {
+    if (event.kind === 'flow') {
+      flowCountByEdge.set(event.target, (flowCountByEdge.get(event.target) || 0) + 1);
+    }
+  }
+  for (const edge of structure.edges) {
+    const flowCount = flowCountByEdge.get(edge.id) || 0;
+    if (flowCount === 0) {
+      failures.push(`Edge '${edge.id}' has no flow event in the timeline`);
+    } else if (flowCount > 1) {
+      failures.push(`Edge '${edge.id}' has ${flowCount} flow events (expected exactly 1)`);
+    }
+  }
+
+  // Invariant D: every highlight event's target must reference a real vertex or edge id.
+  // (Verified gap: a highlight pointing at a nonexistent id was never checked — the
+  // compiler just fails to match it to any layer and silently drops the pulse.)
+  for (const event of timeline.events) {
+    if (event.kind === 'highlight') {
+      if (!vertexMap.has(event.target) && !edgeMap.has(event.target)) {
+        failures.push(`Highlight '${event.target}' does not reference an existing vertex or edge`);
+      }
+    }
+  }
+
+  // Invariant E: every valid input (at least one vertex) must receive at least one
+  // closing highlight (design promise; see docs/roadmap.md closing-animation notes).
+  // Multi-sink graphs legitimately produce more than one highlight, so this asserts
+  // presence only, never an exact count.
+  if (structure.vertices.length > 0) {
+    const hasHighlight = timeline.events.some((event) => event.kind === 'highlight');
+    if (!hasHighlight) {
+      failures.push('Timeline has no highlight event (expected at least one closing highlight)');
     }
   }
 

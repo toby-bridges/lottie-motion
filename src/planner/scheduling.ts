@@ -4,7 +4,6 @@ import { TimelineEvent } from '../types/timeline.js';
 export interface ScheduleOptions {
   revealDur: number;
   stagger: number;
-  fps: number;
 }
 
 /**
@@ -16,7 +15,7 @@ export function scheduleEvents(
   orderedVertexIds: string[],
   options: ScheduleOptions
 ): TimelineEvent[] {
-  const { revealDur, stagger, fps } = options;
+  const { revealDur, stagger } = options;
 
   // Build a map of vertex id → Vertex for geometry lookups
   const vertexMap = new Map<string, Vertex>();
@@ -78,7 +77,8 @@ export function scheduleEvents(
       startF: flowStart,
       endF: flowEnd,
       from: source,
-      to: target
+      to: target,
+      label: edge.label // copied verbatim (edge-label freeze sibling of reveal.label)
     });
   }
 

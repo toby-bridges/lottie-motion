@@ -16,15 +16,18 @@ export const fixture3NodeChain = {
   } as Structure,
   expectedTimeline: {
     fps: 30,
-    width: 1920,
-    height: 1080,
+    // bbox [0,0]..[340,50] (maxBoxDim 100 → padding 40); canvas = bbox + 2·40
+    width: 420,
+    height: 130,
     totalFrames: 72,
+    offsetX: 40,
+    offsetY: 40,
     events: [
       { kind: 'reveal' as const, target: 'A', startF: 0, endF: 12, x: 0, y: 0, w: 100, h: 50, label: 'Node A' },
       { kind: 'reveal' as const, target: 'B', startF: 18, endF: 30, x: 120, y: 0, w: 100, h: 50, label: 'Node B' },
-      { kind: 'flow' as const, target: 'A-B', startF: 30, endF: 42, from: 'A', to: 'B' },
+      { kind: 'flow' as const, target: 'A-B', startF: 30, endF: 42, from: 'A', to: 'B', label: 'flow' },
       { kind: 'reveal' as const, target: 'C', startF: 36, endF: 48, x: 240, y: 0, w: 100, h: 50, label: 'Node C' },
-      { kind: 'flow' as const, target: 'B-C', startF: 48, endF: 60, from: 'B', to: 'C' },
+      { kind: 'flow' as const, target: 'B-C', startF: 48, endF: 60, from: 'B', to: 'C', label: 'flow' },
       { kind: 'highlight' as const, target: 'C', startF: 60, endF: 72 }
     ]
   } as TimelineIR
@@ -48,18 +51,21 @@ export const fixtureDiamondDAG = {
   } as Structure,
   expectedTimeline: {
     fps: 30,
-    width: 1920,
-    height: 1080,
+    // bbox [0,0]..[280,240] (maxBoxDim 80 → padding 40); canvas = bbox + 2·40
+    width: 360,
+    height: 320,
     totalFrames: 90,
+    offsetX: 40,
+    offsetY: 40,
     events: [
       { kind: 'reveal' as const, target: 'A', startF: 0, endF: 12, x: 100, y: 0, w: 80, h: 40, label: 'Root' },
       { kind: 'reveal' as const, target: 'B', startF: 18, endF: 30, x: 0, y: 100, w: 80, h: 40, label: 'Left' },
-      { kind: 'flow' as const, target: 'A-B', startF: 30, endF: 42, from: 'A', to: 'B' },
+      { kind: 'flow' as const, target: 'A-B', startF: 30, endF: 42, from: 'A', to: 'B', label: 'left' },
       { kind: 'reveal' as const, target: 'C', startF: 36, endF: 48, x: 200, y: 100, w: 80, h: 40, label: 'Right' },
-      { kind: 'flow' as const, target: 'A-C', startF: 48, endF: 60, from: 'A', to: 'C' },
+      { kind: 'flow' as const, target: 'A-C', startF: 48, endF: 60, from: 'A', to: 'C', label: 'right' },
       { kind: 'reveal' as const, target: 'D', startF: 54, endF: 66, x: 100, y: 200, w: 80, h: 40, label: 'Sink' },
-      { kind: 'flow' as const, target: 'B-D', startF: 66, endF: 78, from: 'B', to: 'D' },
-      { kind: 'flow' as const, target: 'C-D', startF: 66, endF: 78, from: 'C', to: 'D' },
+      { kind: 'flow' as const, target: 'B-D', startF: 66, endF: 78, from: 'B', to: 'D', label: 'join' },
+      { kind: 'flow' as const, target: 'C-D', startF: 66, endF: 78, from: 'C', to: 'D', label: 'join' },
       { kind: 'highlight' as const, target: 'D', startF: 78, endF: 90 }
     ]
   } as TimelineIR
@@ -81,16 +87,19 @@ export const fixtureCyclicGraph = {
   } as Structure,
   expectedTimeline: {
     fps: 30,
-    width: 1920,
-    height: 1080,
+    // bbox [0,0]..[160,160] (maxBoxDim 60 → padding 40); canvas = bbox + 2·40
+    width: 240,
+    height: 240,
     totalFrames: 72,
+    offsetX: 40,
+    offsetY: 40,
     events: [
       { kind: 'reveal' as const, target: 'A', startF: 0, endF: 12, x: 0, y: 0, w: 60, h: 60, label: 'Node A' },
       { kind: 'reveal' as const, target: 'B', startF: 18, endF: 30, x: 100, y: 0, w: 60, h: 60, label: 'Node B' },
-      { kind: 'flow' as const, target: 'A-B', startF: 30, endF: 42, from: 'A', to: 'B' },
+      { kind: 'flow' as const, target: 'A-B', startF: 30, endF: 42, from: 'A', to: 'B', label: 'next' },
       { kind: 'reveal' as const, target: 'C', startF: 36, endF: 48, x: 50, y: 100, w: 60, h: 60, label: 'Node C' },
-      { kind: 'flow' as const, target: 'B-C', startF: 48, endF: 60, from: 'B', to: 'C' },
-      { kind: 'flow' as const, target: 'C-A', startF: 48, endF: 60, from: 'C', to: 'A' },
+      { kind: 'flow' as const, target: 'B-C', startF: 48, endF: 60, from: 'B', to: 'C', label: 'next' },
+      { kind: 'flow' as const, target: 'C-A', startF: 48, endF: 60, from: 'C', to: 'A', label: 'back' },
       { kind: 'highlight' as const, target: 'C', startF: 60, endF: 72 }
     ]
   } as TimelineIR

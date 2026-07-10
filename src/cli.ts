@@ -5,7 +5,7 @@ import { validateStructure } from './validate.js';
 import { plan } from './planner/plan.js';
 import { compile } from './compiler/compile.js';
 import { builderGate, compilerGate, renderGate } from './gates/index.js';
-import { sampleFrames, render } from './renderer/render.js';
+import { eventSampleFrames, render } from './renderer/render.js';
 
 const args = process.argv.slice(2);
 const inputIdx = args.indexOf('--input');
@@ -34,10 +34,8 @@ async function main(): Promise<void> {
     // Plan
     const timeline = plan(structure);
 
-    // Compile
-    const lottie = compile(timeline);
-
-    // Builder gate (cheapest)
+    // Builder gate (cheapest) — run before compiling so a failing gate
+    // short-circuits without spending a wasted compile pass.
     if (shouldVerify) {
       const builderResult = builderGate(timeline, structure);
       console.log(`Builder gate: ${builderResult.pass ? 'PASS' : 'FAIL'}`);
@@ -48,6 +46,9 @@ async function main(): Promise<void> {
         process.exit(1);
       }
     }
+
+    // Compile
+    const lottie = compile(timeline);
 
     // Compiler gate
     if (shouldVerify) {
@@ -63,8 +64,12 @@ async function main(): Promise<void> {
 
     // Render gate (most expensive)
     if (shouldVerify) {
-      const frames = await render(lottie, sampleFrames(timeline.totalFrames));
-      const renderResult = renderGate(frames, { width: timeline.width, height: timeline.height });
+      // Event-aligned sampling: one frame per reveal/flow completion plus the
+      // global [0,n/4,n/2,3n/4,n-1] set. Passing the timeline + the exact frame
+      // numbers rendered enables the gate's per-event region assertions.
+      const frameNumbers = eventSampleFrames(timeline);
+      const frames = await render(lottie, frameNumbers);
+      const renderResult = renderGate(frames, { width: timeline.width, height: timeline.height }, timeline, frameNumbers);
       console.log(`Render gate: ${renderResult.pass ? 'PASS' : 'FAIL'}`);
       if (!renderResult.pass) {
         for (const msg of renderResult.failures) {

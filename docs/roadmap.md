@@ -114,6 +114,39 @@ node-and-edge topologies fit. The rest need a different IR and are out of scope.
 These non-goals are about *content form*. They may become reachable later via use
 cases 2 & 3 (which build on the same scene-timeline base), but none is in v0.1.
 
+## Prerequisite for use cases 2 & 3: extract the scene-timeline primitive layer (2026-07-08)
+
+Honest gap between design and code, worth flagging before anyone picks up use
+case 2 or 3. Per [[layered-primitives-and-planner]], the intended architecture
+is a **layered hybrid**: a generic scene-timeline layer as "the real base"
+(its own example primitives: `fadeIn(layer, f0, f1)`, `moveAlongPath`,
+`stagger`), with the graph-structure layer (`revealInOrder`, edge-flow,
+highlight) as "a pure *compiler* from `Structure` IR down to scene-timeline
+calls." **That base layer has not actually been extracted yet:**
+
+- `src/compiler/primitives.ts` only holds keyframe/value-level helpers
+  (`keyframe`, `keyframeVec`, `staticVal`, `staticMulti`, `rootCanvasAsm`) — one
+  level lower than "scene-timeline primitives."
+- `fadeIn` — the design doc's own named example of a scene-timeline primitive —
+  does exist in `primitives.ts`, but has zero call sites outside its own unit
+  test (`tests/compiler/primitives.test.ts`).
+- `buildRevealLayer` and `buildFlowLayer`, the functions that actually
+  translate `TimelineIR` events into Lottie layers, live as private functions
+  inside `src/compiler/compile.ts` and build LAST elements (`el`/`ob`/`cl`/…)
+  directly — they don't compile down to `fadeIn` or any other scene-timeline
+  call. `buildRevealLayer` inlines its own opacity construction (mirroring
+  `fadeIn`'s body) instead of calling it.
+
+So today there is effectively one layer (direct LAST-element construction)
+with graph-shaped functions sitting on top of it, not the two-layer hybrid the
+design calls for. **This is fine for v0.1** — one use case doesn't justify
+pre-emptively building out a reusable primitive layer, an instinct consistent
+with the don't-over-formalize rule already applied to the Timeline IR itself
+(see [[layered-primitives-and-planner]]). But it means the first step for use
+case 2 is NOT "write a new compiler on top of the existing primitive layer" —
+it's extracting a real scene-timeline primitive layer out of `compile.ts`
+first, since the base the design assumes doesn't exist yet.
+
 ## Deferred — use case 2: concept / text → general animation
 
 Builds on the same scene-timeline base layer; no graph structure. Out of scope
@@ -123,11 +156,24 @@ until the base is validated by v0.1.
 
 Micro-animations on the same base layer. Out of scope until v0.1.
 
-## Open questions carried into design
+## Open questions carried into design — RESOLVED 2026-07-08
 
-- Wrap `@lottiefiles/last-builder` vs write own thin builder on `@lottiefiles/last`
-  / `lottie-types` (approach A vs B). Leaning A.
-- Input source: consume figure-canvas mxGraph XML directly vs a standalone
-  `Structure` JSON + one adapter.
-- Render gate renderer: lottie-web headless vs puppeteer vs
-  `@lottiefiles/lottie-renderer`.
+All three questions below were open when this roadmap was written; each is now
+settled in code.
+
+- **Wrap `@lottiefiles/last-builder` vs write own thin builder on
+  `@lottiefiles/last` / `lottie-types` (approach A vs B) → chose A (wrap).**
+  `src/compiler/primitives.ts` and `src/compiler/compile.ts` build Lottie JSON
+  directly on `@lottiefiles/last-builder`'s `el`/`ob`/`ar`/`at`/`pt`/`rt`/`cl`
+  constructors; no separate builder layer was written.
+- **Input source: figure-canvas mxGraph XML directly vs a standalone
+  `Structure` JSON + adapter → chose the standalone JSON + adapter.** The
+  planner and compiler only ever consume the `Structure` IR (`vertices[]` +
+  `edges[]`); `src/adapters/mxgraph.ts` is the one boundary adapter, parsing
+  mxGraph XML into `Structure` before anything downstream touches it.
+- **Render gate renderer: lottie-web headless vs puppeteer vs
+  `@lottiefiles/lottie-renderer` → chose lottie-web headless.**
+  `src/renderer/render.ts` runs lottie-web's canvas renderer inside jsdom +
+  node-canvas; puppeteer was ruled out per the pre-mortem (heavy browser
+  runtime = pre-mortem death cause #1 — see the label-rendering decision
+  record above).

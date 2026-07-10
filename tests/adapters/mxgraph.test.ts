@@ -115,6 +115,50 @@ describe('mxGraph adapter', () => {
     expect(() => parseMxGraph(xmlZeroDim)).toThrow();
   });
 
+  it('throws error when edge cell is missing target (not silently dropped)', () => {
+    const xmlMissingTarget = `<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel>
+  <root>
+    <mxCell id="0" parent="1" vertex="1" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="nodeA" value="A" parent="1" vertex="1">
+      <mxGeometry x="10" y="10" width="80" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="nodeB" value="B" parent="1" vertex="1">
+      <mxGeometry x="150" y="50" width="80" height="60" as="geometry" />
+    </mxCell>
+    <!-- Edge missing target attribute: should throw, not be silently dropped -->
+    <mxCell id="edgeNoTarget" edge="1" parent="1" source="nodeA">
+      <mxGeometry as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>`;
+
+    expect(() => parseMxGraph(xmlMissingTarget)).toThrow(/mxGraph edge 'edgeNoTarget' is missing source or target/);
+  });
+
+  it('throws error when edge cell is missing id (not silently dropped)', () => {
+    const xmlMissingId = `<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel>
+  <root>
+    <mxCell id="0" parent="1" vertex="1" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="nodeA" value="A" parent="1" vertex="1">
+      <mxGeometry x="10" y="10" width="80" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="nodeB" value="B" parent="1" vertex="1">
+      <mxGeometry x="150" y="50" width="80" height="60" as="geometry" />
+    </mxCell>
+    <!-- Edge missing id attribute: should throw, not be silently dropped -->
+    <mxCell edge="1" parent="1" source="nodeA" target="nodeB">
+      <mxGeometry as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>`;
+
+    expect(() => parseMxGraph(xmlMissingId)).toThrow(/mxGraph edge '.*' is missing source or target/);
+  });
+
   it('parses diamond DAG with labeled edges', () => {
     const xmlPath = path.join(__dirname, '../fixtures/diamond-dag.mxgraph.xml');
     const xml = fs.readFileSync(xmlPath, 'utf-8');
