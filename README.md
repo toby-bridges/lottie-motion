@@ -22,8 +22,17 @@ Structure IR  →  [planner]  →  Timeline IR  →  [compiler]  →  Lottie JSO
 npm install lottie-motion
 ```
 
-Requires **Node.js 18+**. The `canvas` dependency is used only by the render
-gate (headless frame rendering).
+The compiler and mxGraph adapter work with the base install. To run the render
+gate (headless frame rendering) you also need the optional native deps:
+
+```bash
+npm install lottie-motion --include=optional
+```
+
+Requires **Node.js 20.19+** (jsdom@29 needs it, and lottie-web's UMD bundle
+needs a global `navigator`, which Node 18 lacks). The `canvas` and `lottie-web`
+packages are optional dependencies used only by the render gate (headless frame
+rendering); the compiler and mxGraph adapter work without them.
 
 ## Quick start
 
