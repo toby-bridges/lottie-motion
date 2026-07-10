@@ -7,6 +7,16 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+      # The @lottiefiles/* packages (last, last-builder, relottie,
+      # relottie-parse, relottie-stringify) are a version-locked family from
+      # one monorepo: the root imports types from `last` and functions from
+      # `last-builder`, so bumping any ONE of them alone leaves the tree mixing
+      # 1.x/1.y and fails `tsc` with TS2742. Grouping forces them to move
+      # together in a single PR (verified: all five to 1.16.0 builds + tests +
+      # gates clean).
+      lottiefiles:
+        patterns:
+          - "@lottiefiles/*"
     open-pull-requests-limit: 10
     ignore:
       # lottie-web is pinned to exact 5.13.0 — the most behavior-sensitive dep
