@@ -38,7 +38,7 @@
     "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "dependencies": {
-    "@lottiefiles/last": "1.15.0",
+    "@lottiefiles/last": "1.16.0",
     "@lottiefiles/last-builder": "1.15.0",
     "@lottiefiles/relottie": "1.15.0",
     "@lottiefiles/relottie-parse": "1.15.0",
