@@ -44,7 +44,7 @@
     "@lottiefiles/relottie-parse": "1.16.0",
     "@lottiefiles/relottie-stringify": "1.16.0",
     "ajv": "^8.12.0",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.1.1",
     "opentype.js": "^2.0.0"
   },
   "optionalDependencies": {
@@ -52,7 +52,7 @@
     "lottie-web": "5.13.0"
   },
   "devDependencies": {
-    "@types/jsdom": "^28.0.3",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^20.4.2",
     "tsx": "^4.22.4",
     "typescript": "^5.1.6",
